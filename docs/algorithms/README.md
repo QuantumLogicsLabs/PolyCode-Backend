@@ -1,25 +1,41 @@
-# Algorithms Documentation
+# Algorithms - Complete Documentation
 
-This section contains documentation and explanations for various algorithms implemented in the Python projects.
+This section contains comprehensive documentation for various algorithms implemented in the Python projects, with detailed explanations, implementations, and analysis.
 
-## Available Algorithms
+## 📚 Algorithm Categories
 
-### Sorting Algorithms
-- **Binary Search Algorithm** - Efficient search algorithm for sorted arrays
-- **Merge Sort Algorithm** - Divide and conquer sorting algorithm
-- **Quicksort Algorithm** - Efficient in-place sorting algorithm
-- **Selection Sort Algorithm** - Simple comparison-based sorting
+### 🔍 Search Algorithms
+- **[Search Algorithms](search_algorithms.md)** - Linear, binary, tree, and graph search
+- **Pattern Matching** - String matching and fuzzy search
+- **Hash-Based Search** - Hash tables and dictionary lookups
 
-### Graph Algorithms
-- **Breadth-First Search (BFS)** - Graph traversal algorithm
-- **Depth-First Search (DFS)** - Graph traversal algorithm
-- **Shortest Path Algorithm** - Finds shortest path in weighted graphs
+### 📊 Sorting Algorithms
+- **[Sorting Algorithms](sorting_algorithms.md)** - Basic, efficient, and specialized sorting
+- **Comparison-Based** - Bubble, selection, insertion, quick, merge, heap sort
+- **Non-Comparison** - Counting sort, radix sort, bucket sort
 
-### Mathematical Algorithms
-- **N-Queens Algorithm** - Solves the N-Queens puzzle
-- **Tower of Hanoi Algorithm** - Classic recursive problem
-- **Nth Fibonacci Number Calculator** - Calculates Fibonacci numbers
-- **Bisection Method** - Root-finding numerical method
+### 🕸️ Graph Algorithms
+- **[Graph Algorithms](graph_algorithms.md)** - Traversal, shortest paths, MST, network flow
+- **Traversal** - BFS, DFS, topological sort
+- **Path Finding** - Dijkstra, Bellman-Ford, Floyd-Warshall, A*
+- **Advanced Graph** - Strongly connected components, maximum flow
+
+### 🧮 Dynamic Programming
+- **[Dynamic Programming](dynamic_programming.md)** - Optimization with overlapping subproblems
+- **Classic Problems** - Knapsack, LCS, edit distance, coin change
+- **Advanced Techniques** - Space optimization, bitset DP, tree DP
+
+### 🔢 Mathematical Algorithms
+- **Number Theory** - GCD, LCM, prime numbers, modular arithmetic
+- **Combinatorics** - Permutations, combinations, Pascal's triangle
+- **Numerical Methods** - Root finding, integration, optimization
+- **Cryptography** - Caesar cipher, RSA, hash functions
+
+### 🎯 Algorithmic Techniques
+- **Greedy Algorithms** - Local optimal choices
+- **Divide and Conquer** - Recursive problem decomposition
+- **Backtracking** - Systematic trial and error
+- **Randomized Algorithms** - Monte Carlo, Las Vegas algorithms
 
 ### String and Pattern Algorithms
 - **Caesar Cipher** - Simple substitution cipher

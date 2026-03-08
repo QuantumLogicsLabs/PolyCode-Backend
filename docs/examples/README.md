@@ -1,42 +1,39 @@
-# Python Code Examples
+# Python Code Examples - Complete Collection
 
-This section contains practical code examples organized by category and difficulty level. Each example includes working code, explanations, and variations.
+This section contains practical code examples organized by difficulty level and category. Each example includes working code, detailed explanations, and real-world applications.
 
-## 🎯 Example Categories
+## 📚 Example Categories
 
 ### 🌱 Beginner Examples
 Perfect for those just starting with Python programming.
 
 #### Basic Programs
-- **Hello World Variations** - Different ways to print output
+- **[Hello World Variations](beginner/hello_world_variations.py)** - Different ways to print output
 - **User Input Examples** - Getting and processing user input
 - **Simple Calculators** - Basic arithmetic operations
-- **String Manipulation** - Text processing basics
 - **Number Games** - Interactive number-based games
+- **String Manipulation** - Text processing basics
 
 #### Control Flow
 - **If/Else Examples** - Decision making scenarios
 - **Loop Patterns** - Common loop use cases
-- **Nested Conditions** - Complex decision trees
 - **Pattern Printing** - Visual patterns with loops
+- **Input Validation** - Robust user input handling
 
 ### 🌿 Intermediate Examples
 For developers comfortable with Python basics.
 
-#### Data Structures
-- **List Operations** - Advanced list manipulations
-- **Dictionary Techniques** - Key-value data handling
-- **Set Operations** - Mathematical set operations
-- **Custom Classes** - Object-oriented examples
+#### Data Processing
+- **[Web Scraping Example](intermediate/web_scraping_example.py)** - Extract data from websites
+- **File Operations** - Read/write files, CSV processing
+- **Data Analysis** - Basic data manipulation and analysis
+- **API Integration** - Working with external APIs
 
-#### File Operations
-- **File Reading/Writing** - Text file operations
-- **CSV Processing** - Comma-separated value handling
-- **JSON Handling** - Working with JSON data
-- **Configuration Files** - Settings management
-
-#### API Integration
-- **HTTP Requests** - Web API calls
+#### Application Development
+- **Contact Book** - CRUD operations with data persistence
+- **Todo Manager** - Task management system
+- **Simple Games** - Text-based games and puzzles
+- **Utility Tools** - File organizers, text processors
 - **Data Fetching** - Retrieving web data
 - **API Authentication** - Secure API access
 - **Error Handling** - Robust error management
