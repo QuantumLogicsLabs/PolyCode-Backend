@@ -5,7 +5,6 @@ import DocCard from '../components/DocCard';
 import { getCategoryMeta, formatCategory } from '../utils/categories';
 
 export default function HomePage() {
-  const [stats, setStats] = useState(null);
   const [categories, setCategories] = useState([]);
   const [recent, setRecent] = useState([]);
   const [pyFiles, setPyFiles] = useState([]);
@@ -18,7 +17,6 @@ export default function HomePage() {
       getDocuments({ limit: 100, fileType: 'md', ungrouped: true }),
       getDocuments({ limit: 100, fileType: 'py', ungrouped: true }),
     ]).then(([s, c, r, p]) => {
-      setStats(s.data);
       setCategories(c.data);
       setRecent(r.data.documents);
       setPyFiles(p.data.documents);

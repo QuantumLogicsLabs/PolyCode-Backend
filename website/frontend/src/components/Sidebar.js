@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { getCategories, getStats } from '../utils/api';
 import { getCategoryMeta, formatCategory } from '../utils/categories';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const [categories, setCategories] = useState([]);
   const [stats, setStats] = useState(null);
   const location = useLocation();
@@ -20,21 +20,32 @@ export default function Sidebar() {
     return found ? found.count : null;
   };
 
+  const handleItemClick = () => {
+    if (window.innerWidth <= 900) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'active' : 'mini'}`}>
+      <button className="sidebar-close" onClick={onClose}>×</button>
+      
       {/* Quick Nav */}
       <div className="sidebar-section">
         <div className="sidebar-section-title">Navigate</div>
 
-        <Link to="/" className={`sidebar-item ${isActive('/') ? 'active' : ''}`}>
-          <span className="icon">⌂</span> Home
+        <Link to="/" className={`sidebar-item ${isActive('/') ? 'active' : ''}`} onClick={handleItemClick}>
+          <span className="icon">⌂</span>
+          <span className="sidebar-text">Home</span>
         </Link>
-        <Link to="/stats" className={`sidebar-item ${isActive('/stats') ? 'active' : ''}`}>
-          <span className="icon">◫</span> Statistics
+        <Link to="/stats" className={`sidebar-item ${isActive('/stats') ? 'active' : ''}`} onClick={handleItemClick}>
+          <span className="icon">◫</span>
+          <span className="sidebar-text">Statistics</span>
           {stats && <span className="badge">{stats.totalDocuments}</span>}
         </Link>
-        <Link to="/search" className={`sidebar-item ${isActive('/search') ? 'active' : ''}`}>
-          <span className="icon">⌕</span> Search
+        <Link to="/search" className={`sidebar-item ${isActive('/search') ? 'active' : ''}`} onClick={handleItemClick}>
+          <span className="icon">⌕</span>
+          <span className="sidebar-text">Search</span>
         </Link>
       </div>
 
@@ -52,9 +63,10 @@ export default function Sidebar() {
               to={`/category/${cat}`}
               className={`sidebar-item ${active ? 'active' : ''}`}
               style={active ? { '--cat-accent': meta.color } : {}}
+              onClick={handleItemClick}
             >
               <span className="icon">{meta.icon}</span>
-              {formatCategory(cat)}
+              <span className="sidebar-text">{formatCategory(cat)}</span>
               {catCount(cat) !== null && (
                 <span className="badge">{catCount(cat)}</span>
               )}
@@ -74,6 +86,7 @@ export default function Sidebar() {
               key={ft._id}
               to={`/search?fileType=${ft._id}`}
               className="sidebar-item"
+              onClick={handleItemClick}
             >
               <span className="icon">
                 {ft._id === 'python' || ft._id === 'py' ? '🐍' : 
@@ -82,7 +95,7 @@ export default function Sidebar() {
                  ft._id === 'html' ? '🌐' :
                  ft._id === 'css' ? '🎨' : '📄'}
               </span>
-              .{ft._id === 'markdown' ? 'md' : ft._id === 'python' ? 'py' : ft._id}
+              <span className="sidebar-text">.{ft._id === 'markdown' ? 'md' : ft._id === 'python' ? 'py' : ft._id}</span>
               <span className="badge">{ft.count}</span>
             </Link>
           ))}
@@ -91,3 +104,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+

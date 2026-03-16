@@ -22,7 +22,6 @@ export default function CategoryPage() {
       .finally(() => setLoading(false));
   }, [category, page]);
 
-  const meta = getCategoryMeta(category);
 
   return (
     <div>

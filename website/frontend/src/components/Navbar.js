@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-export default function Navbar() {
+export default function Navbar({ toggleSidebar }) {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,6 +29,12 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
+      <button className="mobile-menu-toggle" onClick={toggleSidebar}>
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
       {/* Brand */}
       <Link to="/" className="navbar-brand">
         <div className="logo">
@@ -62,4 +68,4 @@ export default function Navbar() {
       </div>
     </nav>
   );
-}
+}

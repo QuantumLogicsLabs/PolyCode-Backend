@@ -10,12 +10,18 @@ import StatsPage from './pages/StatsPage';
 import './App.css';
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  const closeSidebar = () => setIsSidebarOpen(false);
+
   return (
     <Router>
       <div className="app">
-        <Navbar />
+        <Navbar toggleSidebar={toggleSidebar} />
         <div className="layout">
-          <Sidebar />
+          {isSidebarOpen && <div className="backdrop" onClick={closeSidebar}></div>}
+          <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
           <main className="main-content">
             <Routes>
               <Route path="/" element={<HomePage />} />
@@ -30,5 +36,6 @@ function App() {
     </Router>
   );
 }
+
 
 export default App;
