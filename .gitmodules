@@ -1,15 +1,9 @@
-[submodule "Cryptocurrency Exchange Platform"]
-	path = Cryptocurrency Exchange Platform
-	url = https://github.com/SENODROOM/Cryptocurreny-Exchange-Platform.git
-[submodule "Chess"]
-	path = Chess
-	url = https://github.com/SENODROOM/CHESS-GAME-SFML-CPP.git
-[submodule "3D Surface Visualizer and Optimizer"]
-	path = 3D Surface Visualizer and Optimizer
-	url = https://github.com/SENODROOM/3D-Surface-Visualizer-and-Optimizer.git
-[submodule "Console Based Simple Calculator"]
-	path = Console Based Simple Calculator
-	url = https://github.com/SENODROOM/Console-Based-Simple-Calculator-Cpp.git
-[submodule "LeetCode"]
-	path = LeetCode
-	url = https://github.com/SENODROOM/LeetCode-in-Cplusplus.git
+
+[submodule "Quantum"]
+	path = Quantum
+	url = https://github.com/SENODROOM/cplusplus.sa.git
+	branch = main
+
+
+
+    
