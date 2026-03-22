@@ -1,0 +1,17 @@
+name,age,city,salary,department
+John,30,New York,75000,Engineering
+Jane,25,San Francisco,65000,Marketing
+Bob,35,Chicago,80000,Engineering
+Alice,28,Boston,70000,Sales
+Charlie,32,Seattle,72000,Marketing
+Diana,29,Austin,68000,Engineering
+Eve,31,Denver,71000,Sales
+Frank,27,Miami,66000,Marketing
+Grace,33,Portland,73000,Engineering
+Henry,26,Phoenix,67000,Sales
+Ivy,34,Philadelphia,74000,Engineering
+Jack,24,San Diego,64000,Marketing
+Kate,30,Baltimore,69000,Sales
+Leo,28,Las Vegas,70000,Engineering
+Mona,29,Detroit,68000,Sales
+Nick,32,Minneapolis,72000,Marketing
