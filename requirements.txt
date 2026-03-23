@@ -1,0 +1,9 @@
+# Java Projects Requirements
+
+# Most projects use standard library only
+# Add any external dependencies here if needed in the future
+
+# Example:
+# requests==2.31.0
+# numpy==1.24.3
+# matplotlib==3.7.1
