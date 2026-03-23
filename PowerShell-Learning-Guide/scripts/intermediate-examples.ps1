@@ -109,7 +109,7 @@ $user | Add-Member -MemberType ScriptProperty -Name "DisplayName" -Value {
 # Add method
 $user | Add-Member -MemberType ScriptMethod -Name "Deactivate" -Value {
     $this.IsActive = $false
-    $this.DeactivatedDate = Get-Date
+    $this | Add-Member -NotePropertyName "DeactivatedDate" -NotePropertyValue (Get-Date) -Force
 }
 
 Write-Host "Custom object:"
@@ -144,15 +144,15 @@ class Employee {
         $this.Salary += $raiseAmount
     }
     
-    [string]$DisplayName {
-        get { return "$($this.GetFullName()) (ID: $($this.EmployeeId))" }
+    [string]GetDisplayName() {
+        return "$($this.GetFullName()) (ID: $($this.EmployeeId))"
     }
 }
 
 $emp = [Employee]::new("Alice", "Johnson", 1001)
 $emp.Department = "Engineering"
 $emp.Promote(5000)
-Write-Host "Employee: $($emp.DisplayName), Salary: $($emp.Salary):C"
+Write-Host "Employee: $($emp.GetDisplayName()), Salary: $($emp.Salary):C"
 
 # File system examples
 Write-Host "`n=== File System Examples ===" -ForegroundColor Green
@@ -201,8 +201,8 @@ $fileInfo = Get-Item -Path $sourceFile
 Write-Host "  File info: $($fileInfo.Name), Size: $($fileInfo.Length) bytes, Created: $($fileInfo.CreationTime)"
 
 # Search in files
-$matches = Select-String -Path $tempDir -Pattern "Content" -SimpleMatch
-Write-Host "  Found $($matches.Count) matches for 'Content'"
+$searchResults = Select-String -Path (Join-Path $tempDir "*.txt") -Pattern "Content" -SimpleMatch
+Write-Host "  Found $($searchResults.Count) matches for 'Content'"
 
 # Directory operations
 $subDir = Join-Path $tempDir "subfolder"
@@ -327,7 +327,7 @@ $moduleScriptContent | Set-Content -Path $moduleScriptPath
 Write-Host "Created example module at: $moduleDir"
 
 # Import and use the module
-Import-Module -Path $modulePath -Force
+Import-Module -Name $moduleDir -Force
 
 Write-Host "Module imported successfully"
 Write-Host "Available commands:"
@@ -393,7 +393,7 @@ function Test-ScriptParameters {
 
 # Test parameter validation
 try {
-    $result = Test-ScriptParameters -Name "Test" -Count 50 -Priority "High" -Force -Items "A", "B", "C"
+    Test-ScriptParameters -Name "Test" -Count 50 -Priority "High" -Force -Items "A", "B", "C" | Out-Null
     Write-Host "Parameter test successful"
 }
 catch {
