@@ -1,6 +1,0 @@
-ERROR for /api/documents/:path(.*): Missing parameter name at index 23: /api/documents/:path(.*); visit https://git.new/pathToRegexpError for info
-SUCCESS: /api/documents/*path
-ERROR for /api/documents/*: Missing parameter name at index 16: /api/documents/*; visit https://git.new/pathToRegexpError for info
-SUCCESS: /api/documents/{*path}
-ERROR for /api/documents/(.*): Missing parameter name at index 18: /api/documents/(.*); visit https://git.new/pathToRegexpError for info
-ERROR for /api/documents/:path*: Missing parameter name at index 21: /api/documents/:path*; visit https://git.new/pathToRegexpError for info
