@@ -52,16 +52,26 @@ Welcome to **The Ultimate Ruby Programming Guide** - the most comprehensive Ruby
 ### 🌱 Beginner Level (10 guides)
 | Guide | Description | Lines |
 |-------|-------------|-------|
+| [**00-roadmap.md**](docs/00-roadmap.md) | Complete learning path | ~200 |
 | [**01-introduction.md**](docs/01-introduction.md) | Getting started with Ruby philosophy | ~200 |
-| [**02-basic-syntax.md**](docs/02-basic-syntax.md) | Basic syntax and structure | ~500 |
-| [**03-data-types.md**](docs/03-data-types.md) | Data types and variables | ~600 |
-| [**04-control-flow.md**](docs/04-control-flow.md) | Control flow statements | ~400 |
-| [**05-methods.md**](docs/05-methods.md) | Methods and functions | ~500 |
-| [**06-oop.md**](docs/06-oop.md) | Object-oriented programming | ~700 |
-| [**07-modules.md**](docs/07-modules.md) | Modules and mixins | ~400 |
-| [**08-error-handling.md**](docs/08-error-handling.md) | Error handling | ~500 |
-| [**09-file-io.md**](docs/09-file-io.md) | File input/output | ~400 |
-| [**10-gems.md**](docs/10-gems.md) | Gems and package management | ~300 |
+| [**02-basic-syntax.md**](docs/02-basic-syntax.md) | Language fundamentals | ~300 |
+| [**03-data-types.md**](docs/03-data-types.md) | Variables and data structures | ~250 |
+| [**04-control-flow.md**](docs/04-control-flow.md) | Loops and conditionals | ~300 |
+| [**05-methods.md**](docs/05-methods.md) | Functions and method definitions | ~250 |
+| [**06-oop.md**](docs/06-oop.md) | Object-oriented programming | ~350 |
+| [**07-modules.md**](docs/07-modules.md) | Mixins and modules | ~200 |
+| [**08-error-handling.md**](docs/08-error-handling.md) | Exception handling | ~250 |
+| [**09-file-io.md**](docs/09-file-io.md) | File operations | ~200 |
+| [**10-gems.md**](docs/10-gems.md) | Package management | ~150 |
+
+### 🚀 Intermediate Level (5 guides)
+| Guide | Description | Lines |
+|-------|-------------|-------|
+| [**intermediate-features.md**](docs/intermediate-features.md) | Advanced Ruby features | ~400 |
+| [**advanced-patterns.md**](docs/advanced-patterns.md) | Sophisticated programming patterns | ~350 |
+| [**testing-basics.md**](docs/testing-basics.md) | Introduction to testing | ~300 |
+| [**web-basics.md**](docs/web-basics.md) | Web development fundamentals | ~350 |
+| [**database-basics.md**](docs/database-basics.md) | Database programming basics | ~300 |
 
 ---
 
@@ -70,8 +80,25 @@ Welcome to **The Ultimate Ruby Programming Guide** - the most comprehensive Ruby
 ### 🔰 Basic Examples
 - **[basic-examples/](examples/basic-examples/)** - Fundamental Ruby concepts
 - **[intermediate-examples/](examples/intermediate-examples/)** - Advanced patterns
+- **[advanced-examples/](examples/advanced-examples/)** - 15 specialized implementations
 
-### 🚀 Advanced Examples (15 specialized sets)
+### 🎮 Projects (5 complete applications)
+- **[todo-list-manager/](examples/projects/todo-list-manager/)** - Command-line task manager
+- **[contact-book/](examples/projects/contact-book/)** - Contact management system
+- **[simple-web-server/](examples/projects/simple-web-server/)** - HTTP server implementation
+- **[data-analysis-tool/](examples/projects/data-analysis-tool/)** - Statistical analysis tool
+- **[game-engine/](examples/projects/game-engine/)** - ECS game engine
+
+### 🎨 Creative Projects (4 innovative applications)
+- **[generative_art_system.rb](examples/creative-projects/generative_art_system.rb)** - Mathematical art generator
+- **[ai_game_developer.rb](examples/creative-projects/ai_game_developer.rb)** - AI-powered game creation
+- **[virtual_world_simulator.rb](examples/creative-projects/virtual_world_simulator.rb)** - Complex world simulation
+- **[creative_ruby_showcase.rb](examples/creative-projects/creative_ruby_showcase.rb)** - Ruby capabilities demo
+
+### 🎓 Learning Resources
+- **[workshops/](examples/workshops/)** - Interactive learning workshops
+- **[challenges/](examples/challenges/)** - Programming challenges
+- **[interview-prep/](examples/interview-prep/)** - Interview preparation
 | Example Set | Focus | Key Features |
 |-------------|-------|--------------|
 | [**algorithms_examples.rb**](examples/advanced-examples/algorithms_examples.rb) | Data structures & algorithms | Sorting, searching, graphs |
@@ -93,55 +120,126 @@ Welcome to **The Ultimate Ruby Programming Guide** - the most comprehensive Ruby
 
 ## 🚀 Advanced Topics (`advanced/`)
 
-### 🎓 Advanced Guides (15 comprehensive guides)
-| Guide | Description | Topics Covered |
-|-------|-------------|----------------|
-| [**algorithms/**](advanced/algorithms/) | Data structures & algorithms | Arrays, linked lists, sorting, graphs |
-| [**best_practices/**](advanced/best_practices/) | Code quality & architecture | Style, patterns, security |
-| [**concurrency/**](advanced/concurrency/) | Concurrency & parallelism | Threading, synchronization |
-| [**database/**](advanced/database/) | Database programming | SQL, ORM, optimization |
-| [**debugging/**](advanced/debugging/) | Advanced debugging | Profiling, memory analysis |
-| [**design_patterns/**](advanced/design_patterns/) | Design patterns | Creational, structural, behavioral |
-| [**devops/**](advanced/devops/) | DevOps & automation | CI/CD, containers, IaC |
-| [**integration/**](advanced/integration/) | Integration patterns | API, messaging, events |
-| [**machine_learning/**](advanced/machine_learning/) | ML & data science | Algorithms, neural networks |
-| [**microservices/**](advanced/microservices/) | Microservices architecture | Service design, deployment |
-| [**networking/**](advanced/networking/) | Network programming | Sockets, HTTP, protocols |
-| [**performance/**](advanced/performance/) | Performance optimization | Caching, profiling |
-| [**security/**](advanced/security/) | Security best practices | Authentication, encryption |
-| [**testing/**](advanced/testing/) | Advanced testing | Strategies, automation |
-| [**web_development/**](advanced/web_development/) | Web frameworks | Rails, Sinatra, APIs |
+### 🔬 Advanced Topics (15 specialized areas)
+| Topic | Description | Lines |
+|-------|-------------|-------|
+| [**quantum_computing/**](advanced/quantum_computing/) | Quantum computing implementation | ~1,500 |
+| [**blockchain/**](advanced/blockchain/) | Blockchain development | ~1,500 |
+| [**artificial_intelligence/**](advanced/artificial_intelligence/) | AI & machine learning | ~2,500 |
+| [**cybersecurity/**](advanced/cybersecurity/) | Security & encryption | ~1,500 |
+| [**algorithms/**](advanced/algorithms/) | Data structures & algorithms | ~1,000 |
+| [**best_practices/**](advanced/best_practices/) | Code quality & architecture | ~1,600 |
+| [**concurrency/**](advanced/concurrency/) | Threading & parallelism | ~1,200 |
+| [**database/**](advanced/database/) | Database programming | ~800 |
+| [**debugging/**](advanced/debugging/) | Advanced debugging | ~1,500 |
+| [**design_patterns/**](advanced/design_patterns/) | Design patterns | ~600 |
+| [**devops/**](advanced/devops/) | DevOps & automation | ~800 |
+| [**integration/**](advanced/integration/) | Integration patterns | ~1,000 |
+| [**machine_learning/**](advanced/machine_learning/) | ML & data science | ~1,200 |
+| [**microservices/**](advanced/microservices/) | Microservices architecture | ~1,500 |
+| [**networking/**](advanced/networking/) | Network programming | ~800 |
+| [**performance/**](advanced/performance/) | Performance optimization | ~1,200 |
+| [**security/**](advanced/security/) | Security best practices | ~600 |
+| [**testing/**](advanced/testing/) | Advanced testing | ~1,200 |
+| [**web_development/**](advanced/web_development/) | Web frameworks | ~600 |
+
+### 🔬 Research Area
+- **[research/**](advanced/research/) - Cutting-edge Ruby research and experiments
 
 ---
 
-## 🎮 Projects (`examples/projects/`)
+## 🛠️ Development Tools (`scripts/` & `tools/`)
 
-### 🏗️ Complete Applications (5 production-ready projects)
+### 📋 Scripts & Utilities
+- **[setup.rb](scripts/setup.rb)** - Environment setup script
+- **[code_analyzer.rb](tools/code_analyzer.rb)** - Code quality analyzer
 
-| Project | Description | Technologies |
-|---------|-------------|--------------|
-| [**todo-list-manager/**](examples/projects/todo-list-manager/) | Command-line task manager | File I/O, data structures |
-| [**contact-book/**](examples/projects/contact-book/) | Contact management system | Validation, persistence |
-| [**simple-web-server/**](examples/projects/simple-web-server/) | HTTP server implementation | Sockets, HTTP protocol |
-| [**data-analysis-tool/**](examples/projects/data-analysis-tool/) | Statistical analysis tool | CSV processing, statistics |
-| [**game-engine/**](examples/projects/game-engine/) | ECS game engine | Component architecture |
+### 🎨 Assets
+- **[assets/images/](assets/images/)** - Images and diagrams
+- **[assets/diagrams/](assets/diagrams/)** - Architecture diagrams
 
 ---
 
-## 🎨 Creative Projects (`examples/creative-projects/`)
+## 📊 Repository Structure
 
-### ✨ Innovative Ruby Applications (4 cutting-edge projects)
-
-| Project | Description | Technologies |
-|---------|-------------|--------------|
-| [**generative_art_system.rb**](examples/creative-projects/generative_art_system.rb) | Mathematical art generator | Fractals, particles, algorithms |
-| [**ai_game_developer.rb**](examples/creative-projects/ai_game_developer.rb) | AI-powered game creation | Code generation, AI algorithms |
-| [**virtual_world_simulator.rb**](examples/creative-projects/virtual_world_simulator.rb) | Complex world simulation | Ecosystems, civilizations, physics |
-| [**creative_ruby_showcase.rb**](examples/creative-projects/creative_ruby_showcase.rb) | Ruby capabilities demo | Metaprogramming, creative coding |
-
----
-
-## 🛠️ Getting Started
+```
+ruby-guide/
+├── 📚 docs/                    # 15 guides (beginner + intermediate)
+│   ├── 00-roadmap.md           # Complete learning path
+│   ├── 01-introduction.md      # Ruby philosophy
+│   ├── 02-basic-syntax.md      # Language fundamentals
+│   ├── 03-data-types.md        # Variables and data structures
+│   ├── 04-control-flow.md      # Loops and conditionals
+│   ├── 05-methods.md           # Functions and methods
+│   ├── 06-oop.md              # Object-oriented programming
+│   ├── 07-modules.md          # Mixins and modules
+│   ├── 08-error-handling.md   # Exception handling
+│   ├── 09-file-io.md          # File operations
+│   ├── 10-gems.md             # Package management
+│   ├── intermediate-features.md # Advanced Ruby features
+│   ├── advanced-patterns.md    # Sophisticated patterns
+│   ├── testing-basics.md       # Introduction to testing
+│   ├── web-basics.md          # Web development fundamentals
+│   └── database-basics.md      # Database programming basics
+├── 💻 examples/                # Practical examples
+│   ├── basic-examples/         # Fundamental concepts
+│   ├── intermediate-examples/  # Advanced patterns
+│   ├── advanced-examples/     # 15 specialized implementations
+│   ├── projects/               # 5 complete applications
+│   │   ├── todo-list-manager/  # Task management
+│   │   ├── contact-book/       # Contact management
+│   │   ├── simple-web-server/  # HTTP server
+│   │   ├── data-analysis-tool/ # Statistical analysis
+│   │   └── game-engine/         # ECS game engine
+│   ├── creative-projects/       # 4 innovative applications
+│   │   ├── generative_art_system.rb
+│   │   ├── ai_game_developer.rb
+│   │   ├── virtual_world_simulator.rb
+│   │   └── creative_ruby_showcase.rb
+│   ├── workshops/              # Interactive learning
+│   │   └── intro_workshop.rb
+│   ├── challenges/             # Programming challenges
+│   │   └── ruby_challenges.rb
+│   └── interview-prep/         # Interview preparation
+│       └── ruby_interview_questions.rb
+├── 🚀 advanced/                # 15 advanced topics
+│   ├── quantum_computing/      # Quantum algorithms
+│   ├── blockchain/             # Blockchain development
+│   ├── artificial_intelligence/ # AI & ML
+│   ├── cybersecurity/          # Security & encryption
+│   ├── algorithms/             # Data structures
+│   ├── best_practices/         # Code quality
+│   ├── concurrency/            # Threading & parallelism
+│   ├── database/               # Database programming
+│   ├── debugging/              # Advanced debugging
+│   ├── design_patterns/         # Design patterns
+│   ├── devops/                 # DevOps automation
+│   ├── integration/            # Integration patterns
+│   ├── machine_learning/       # ML algorithms
+│   ├── microservices/          # Microservices architecture
+│   ├── networking/             # Network programming
+│   ├── performance/            # Performance optimization
+│   ├── security/               # Security practices
+│   ├── testing/                # Advanced testing
+│   ├── web_development/        # Web frameworks
+│   └── research/               # Cutting-edge research
+├── 🛠️ scripts/                 # Development utilities
+│   └── setup.rb               # Environment setup
+├── 🔧 tools/                   # Development tools
+│   └── code_analyzer.rb       # Code quality analysis
+├── 🎨 assets/                  # Media assets
+│   ├── images/                # Images
+│   └── diagrams/              # Architecture diagrams
+└── 📄 Documentation files       # Project documentation
+    ├── README.md               # Main guide
+    ├── CONTRIBUTING.md         # Contribution guidelines
+    ├── CHANGELOG.md            # Version history
+    ├── CODE_OF_CONDUCT.md       # Community standards
+    ├── LICENSE                 # MIT License
+    ├── .gitignore              # Git ignore rules
+    ├── FAQ.md                  # Common questions
+    └── CONCLUSION.md           # Final wrap-up
+```
 
 ### 📋 Prerequisites
 - No prior programming experience required
