@@ -157,7 +157,13 @@ Specialize: Choose your path:
   ├─ system_programming/ (System-level programming)
   ├─ file_system_operations/ (File management)
   ├─ memory_management_debugging/ (Memory techniques)
-  └─ data_serialization/ (Data formats)
+  ├─ data_serialization/ (Data formats)
+  ├─ cross_platform_development/ (Platform abstraction)
+  ├─ performance_optimization/ (Speed and efficiency)
+  ├─ api_design_implementation/ (Interface design)
+  ├─ logging_monitoring/ (System observability)
+  ├─ plugin_architecture/ (Extensible systems)
+  └─ real_time_programming/ (Time-critical systems)
   ↓
 Test: testing/
   ↓
@@ -192,6 +198,12 @@ Reuse: utilities/
 | file_system_operations/ | File management | `.c` + `.md` pairs | File_System_Operations |
 | memory_management_debugging/ | Memory techniques | `.c` + `.md` pairs | Memory_Management_and_Debugging |
 | data_serialization/ | Data formats | `.c` + `.md` pairs | Data_Serialization |
+| cross_platform_development/ | Platform abstraction | `.c` + `.md` pairs | Cross_Platform_Development |
+| performance_optimization/ | Speed and efficiency | `.c` + `.md` pairs | Performance_Optimization |
+| api_design_implementation/ | Interface design | `.c` + `.md` pairs | API_Design_and_Implementation |
+| logging_monitoring/ | System observability | `.c` + `.md` pairs | Logging_and_Monitoring |
+| plugin_architecture/ | Extensible systems | `.c` + `.md` pairs | Plugin_Architecture |
+| real_time_programming/ | Time-critical systems | `.c` + `.md` pairs | Real_Time_Programming |
 
 ### 🔬 scientific_computing/
 **Numerical Methods and Scientific Computing**
@@ -372,6 +384,78 @@ Data persistence and exchange:
 - Cross-platform serialization
 
 **Paired files**: Serialization code + format theory
+
+### 🌐 cross_platform_development/
+**Cross-Platform Development**
+
+Platform-agnostic programming techniques:
+- Platform detection and conditional compilation
+- Cross-platform file and directory operations
+- Threading and synchronization across platforms
+- Dynamic library loading and management
+- System information and configuration
+
+**Paired files**: Platform abstraction + compatibility code
+
+### ⚡ performance_optimization/
+**Performance Optimization**
+
+High-performance C programming techniques:
+- Cache optimization and memory alignment
+- Algorithm optimization and profiling
+- Loop optimization and vectorization
+- Branch prediction and pipeline optimization
+- Performance measurement and analysis
+
+**Paired files**: Optimization techniques + performance analysis
+
+### 🔧 api_design_implementation/
+**API Design and Implementation**
+
+Professional API development practices:
+- API design principles and patterns
+- Error handling and validation
+- Version management and compatibility
+- Function registration and discovery
+- Documentation and testing strategies
+
+**Paired files**: Interface design + implementation patterns
+
+### 📊 logging_monitoring/
+**Logging and Monitoring Systems**
+
+System observability and debugging:
+- Multi-level logging with custom handlers
+- Performance monitoring and metrics collection
+- Memory usage tracking and analysis
+- Health monitoring and alerting
+- Structured logging and event systems
+
+**Paired files**: Logging framework + monitoring tools
+
+### 🔌 plugin_architecture/
+**Plugin Architecture**
+
+Extensible and modular systems:
+- Dynamic plugin loading and unloading
+- Plugin interface standardization
+- Plugin discovery and management
+- Plugin configuration and activation
+- Error handling and resource management
+
+**Paired files**: Plugin framework + extensibility patterns
+
+### ⏱️ real_time_programming/
+**Real-Time Programming**
+
+Time-critical system development:
+- High-resolution time management
+- Real-time task scheduling and deadlines
+- Timer systems and interrupt handling
+- Real-time constraints and analysis
+- Scheduling algorithms (RM, EDF)
+
+**Paired files**: Real-time systems + timing analysis
 
 ## 🎯 Learning Tips
 
