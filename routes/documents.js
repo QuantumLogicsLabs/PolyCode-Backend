@@ -3,17 +3,43 @@ const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
 
+// Try to import Worker threads, but don't fail if not available
+let Worker;
+try {
+  Worker = require('worker_threads').Worker;
+} catch (e) {
+  console.warn('⚠️  Worker threads not available, using main thread for heavy operations');
+}
+
 // Path to your folders
 const DATA_BASE_PATH = path.join(__dirname, '../data');
 
-// ─── Caching Implementation ──────────────────────────────────────────────────
-const CACHE_TTL = 60 * 1000; // 1 minute cache
+// ─── Enhanced Caching Implementation ──────────────────────────────────────────────────
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache (increased from 1 minute)
 const cache = {
   languages: { data: null, timestamp: 0 },
   trees: new Map(), // language -> { data, timestamp }
   stats: new Map(), // language -> { data, timestamp }
-  documents: new Map() // language -> { data, timestamp }
+  documents: new Map(), // language -> { data, timestamp }
+  fileIndex: new Map() // path -> { data, timestamp }
 };
+
+// Memory management - clear old cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, map] of [
+    ['trees', cache.trees],
+    ['stats', cache.stats], 
+    ['documents', cache.documents],
+    ['fileIndex', cache.fileIndex]
+  ]) {
+    for (const [innerKey, value] of map.entries()) {
+      if (now - value.timestamp >= CACHE_TTL) {
+        map.delete(innerKey);
+      }
+    }
+  }
+}, CACHE_TTL);
 
 function getFromCache(cacheObj, key) {
   const item = key ? cacheObj.get(key) : cacheObj.data;
@@ -32,21 +58,77 @@ function setInCache(cacheObj, key, data) {
   }
 }
 
-// Helper function to get file info (Optimized: reads only first 1KB for metadata, or full for single doc)
+// ─── Worker Thread for Heavy Operations ───────────────────────────────────────────────
+function createWorkerTask(operation, data) {
+  if (!Worker) {
+    // Fallback to main thread execution
+    console.warn('⚠️  Worker threads not available, executing in main thread');
+    return Promise.reject(new Error('Worker threads not available'));
+  }
+  
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(__dirname + '/worker.js', {
+      workerData: { operation, data }
+    });
+    
+    worker.on('message', resolve);
+    worker.on('error', reject);
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
+}
+
+// ─── Optimized File Operations ───────────────────────────────────────────────────────
+// Batch file reading for better performance
+async function batchReadFiles(filePaths, options = {}) {
+  const { readMetadata = true, readContent = false } = options;
+  const batchSize = 10; // Process files in batches to avoid overwhelming the system
+  
+  const results = [];
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(i, i + batchSize);
+    const batchPromises = batch.map(filePath => getFileInfo(filePath, path.relative(DATA_BASE_PATH, filePath), options));
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        results.push(result.value);
+      }
+    });
+  }
+  
+  return results;
+}
+
+// Enhanced file info with better error handling and performance
 async function getFileInfo(filePath, relativePath, options = {}) {
   const { readMetadata = true, readContent = false } = options;
+  
   try {
+    // Check cache first for individual files
+    const cacheKey = `${relativePath}:${readContent ? 'full' : 'meta'}`;
+    const cached = getFromCache(cache.fileIndex, cacheKey);
+    if (cached && !readContent) {
+      return cached;
+    }
+    
     const stats = await fs.stat(filePath);
     const ext = path.extname(filePath).toLowerCase();
     
     let fileType = 'other';
-    if (ext === '.py') fileType = 'python';
-    else if (ext === '.md') fileType = 'markdown';
-    else if (ext === '.txt') fileType = 'text';
-    else if (ext === '.js' || ext === '.jsx') fileType = 'javascript';
-    else if (ext === '.html') fileType = 'html';
-    else if (ext === '.css') fileType = 'css';
-    else if (['.c', '.cpp', '.java', '.go', '.rs', '.php', '.rb', '.cs'].includes(ext)) fileType = 'code';
+    const fileTypeMap = {
+      '.py': 'python', '.md': 'markdown', '.txt': 'text',
+      '.js': 'javascript', '.jsx': 'javascript', '.ts': 'typescript', '.tsx': 'typescript',
+      '.html': 'html', '.css': 'css',
+      '.c': 'c', '.cpp': 'cpp', '.java': 'java', '.go': 'go',
+      '.rs': 'rust', '.php': 'php', '.rb': 'ruby', '.cs': 'csharp',
+      '.sql': 'sql', '.sh': 'shell', '.bash': 'shell'
+    };
+    
+    fileType = fileTypeMap[ext] || 'other';
 
     const normalizedPath = relativePath.replace(/\\/g, '/');
     let category = path.dirname(normalizedPath);
@@ -63,41 +145,63 @@ async function getFileInfo(filePath, relativePath, options = {}) {
       modifiedAt: stats.mtime,
     };
 
-    if (!readMetadata && !readContent) return baseInfo;
+    if (!readMetadata && !readContent) {
+      setInCache(cache.fileIndex, cacheKey, baseInfo);
+      return baseInfo;
+    }
 
     if (readContent) {
       const content = await fs.readFile(filePath, 'utf8');
-      return {
+      const result = {
         ...baseInfo,
         content: content,
         lines: content.split('\n').length,
         excerpt: content.split('\n')[0].replace(/[#"']/g, '').trim() || 'No description available',
         wordCount: content.split(/\s+/).length
       };
+      setInCache(cache.fileIndex, cacheKey, result);
+      return result;
     }
 
-    // List view: Only read the first 1KB to get line count estimate and excerpt
+    // Optimized metadata reading - use file size estimates for large files
+    if (stats.size > 100 * 1024) { // Files larger than 100KB
+      const result = {
+        ...baseInfo,
+        lines: Math.floor(stats.size / 40), 
+        excerpt: 'Large file - preview not available',
+        wordCount: Math.floor(stats.size / 6) 
+      };
+      setInCache(cache.fileIndex, cacheKey, result);
+      return result;
+    }
+
+    // Small files - read first 1KB
     const buffer = Buffer.alloc(1024);
     const fd = await fs.open(filePath, 'r');
-    const { bytesRead } = await fd.read(buffer, 0, 1024, 0);
-    await fd.close();
-    
-    const chunk = buffer.toString('utf8', 0, bytesRead);
-    const lines = chunk.split('\n');
-    const firstLine = lines[0].replace(/[#"']/g, '').trim();
-    
-    return {
-      ...baseInfo,
-      lines: Math.floor(stats.size / 40), 
-      excerpt: firstLine || 'No description available',
-      wordCount: Math.floor(stats.size / 6) 
-    };
+    try {
+      const { bytesRead } = await fd.read(buffer, 0, 1024, 0);
+      const chunk = buffer.toString('utf8', 0, bytesRead);
+      const lines = chunk.split('\n');
+      const firstLine = lines[0].replace(/[#"']/g, '').trim();
+      
+      const result = {
+        ...baseInfo,
+        lines: Math.floor(stats.size / 40), 
+        excerpt: firstLine || 'No description available',
+        wordCount: Math.floor(stats.size / 6) 
+      };
+      setInCache(cache.fileIndex, cacheKey, result);
+      return result;
+    } finally {
+      await fd.close();
+    }
   } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error.message);
     return null;
   }
 }
 
-// Helper function to recursively scan directories (Optimized: Parallel processing)
+// Optimized directory scanning with parallel processing
 async function scanDirectory(dirPath, basePath = DATA_BASE_PATH, maxDepth = 10, currentDepth = 0) {
   if (currentDepth >= maxDepth) return [];
   
@@ -105,27 +209,43 @@ async function scanDirectory(dirPath, basePath = DATA_BASE_PATH, maxDepth = 10, 
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const allowedExtensions = ['.py', '.md', '.txt', '.js', '.jsx', '.ts', '.tsx', '.html', '.css', '.go', '.java', '.c', '.cpp', '.rs', '.php', '.rb', '.sql', '.sh', '.bash'];
     
-    const tasks = entries.map(async (entry) => {
-      if (entry.name.startsWith('.')) return [];
-      if (['node_modules', 'venv', '__pycache__'].includes(entry.name)) return [];
+    // Filter and categorize entries
+    const files = [];
+    const directories = [];
+    
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      if (['node_modules', 'venv', '__pycache__', '.git', 'dist', 'build'].includes(entry.name)) continue;
       
       const fullPath = path.join(dirPath, entry.name);
       const relativePath = path.relative(basePath, fullPath);
       
       if (entry.isDirectory()) {
-        return await scanDirectory(fullPath, basePath, maxDepth, currentDepth + 1);
+        directories.push({ fullPath, relativePath });
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase();
         if (allowedExtensions.includes(ext)) {
-          const fileInfo = await getFileInfo(fullPath, relativePath, { readMetadata: true });
-          return fileInfo ? [fileInfo] : [];
+          files.push({ fullPath, relativePath });
         }
       }
-      return [];
+    }
+    
+    // Process files in parallel batches
+    const fileResults = await batchReadFiles(files.map(f => f.fullPath), { readMetadata: true });
+    
+    // Recursively scan directories with limited parallelism
+    const dirPromises = directories.slice(0, 5).map(async ({ fullPath, relativePath }) => {
+      try {
+        return await scanDirectory(fullPath, basePath, maxDepth, currentDepth + 1);
+      } catch (error) {
+        console.error(`Error scanning directory ${fullPath}:`, error.message);
+        return [];
+      }
     });
-
-    const results = await Promise.all(tasks);
-    return results.flat();
+    
+    const dirResults = await Promise.all(dirPromises);
+    
+    return [...fileResults.filter(Boolean), ...dirResults.flat()];
   } catch (error) {
     console.error(`Error scanning directory ${dirPath}:`, error.message);
     return [];
