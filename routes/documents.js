@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
+const { spawn } = require('child_process');
 
 // Try to import Worker threads, but don't fail if not available
 let Worker;
@@ -13,6 +14,9 @@ try {
 
 // Path to your folders
 const DATA_BASE_PATH = path.join(__dirname, '../data');
+const PYTHON_DATA_PATH = path.join(DATA_BASE_PATH, 'Python', 'data');
+const RUN_TIMEOUT_MS = 8000;
+let resolvedPythonCommand = null;
 
 // ─── Enhanced Caching Implementation ──────────────────────────────────────────────────
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache (increased from 1 minute)
@@ -56,6 +60,92 @@ function setInCache(cacheObj, key, data) {
   } else {
     cacheObj.data = item;
   }
+}
+
+function runSpawn(command, args = [], options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, options);
+    child.once('error', reject);
+    child.once('spawn', () => resolve(child));
+  });
+}
+
+async function resolvePythonCommand() {
+  if (resolvedPythonCommand) return resolvedPythonCommand;
+  const candidates = process.platform === 'win32'
+    ? [
+        process.env.PYTHON_EXECUTABLE,
+        'py -3',
+        'python',
+        'python3',
+      ]
+    : [
+        process.env.PYTHON_EXECUTABLE,
+        'python3',
+        'python',
+      ];
+
+  for (const candidate of candidates.filter(Boolean)) {
+    const [cmd, ...args] = candidate.split(' ');
+    try {
+      const probe = await runSpawn(cmd, [...args, '--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
+      await new Promise((resolve, reject) => {
+        probe.once('exit', (code) => (code === 0 ? resolve() : reject(new Error('non-zero exit'))));
+        probe.once('error', reject);
+      });
+      resolvedPythonCommand = candidate;
+      return resolvedPythonCommand;
+    } catch (_) {
+      // Try next candidate
+    }
+  }
+  throw new Error('No Python runtime found on server. Install Python or set PYTHON_EXECUTABLE.');
+}
+
+async function executePythonCode(code, stdin = '') {
+  const command = await resolvePythonCommand();
+  const [cmd, ...baseArgs] = command.split(' ');
+  const args = [...baseArgs, '-c', code];
+
+  return new Promise(async (resolve, reject) => {
+    let child;
+    try {
+      child = await runSpawn(cmd, args, {
+        cwd: PYTHON_DATA_PATH,
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (e) {
+      reject(e);
+      return;
+    }
+
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Python execution timed out after ${RUN_TIMEOUT_MS}ms`));
+    }, RUN_TIMEOUT_MS);
+
+    child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({
+        stdout: stdout.trimEnd(),
+        stderr: stderr.trimEnd(),
+        error: code === 0 ? null : (stderr.trimEnd() || `Python exited with code ${code}`),
+        exitCode: code,
+      });
+    });
+
+    if (stdin) child.stdin.write(stdin);
+    child.stdin.end();
+  });
 }
 
 // ─── Worker Thread for Heavy Operations ───────────────────────────────────────────────
@@ -445,6 +535,21 @@ router.get('/categories', async (req, res) => {
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/documents/run-python - execute Python code from examples safely (timeout)
+router.post('/run-python', async (req, res) => {
+  try {
+    const { code, stdin = '' } = req.body || {};
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ error: 'Request body must include a Python code string.' });
+    }
+
+    const result = await executePythonCode(code, typeof stdin === 'string' ? stdin : '');
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ stdout: '', stderr: err.message, error: err.message });
   }
 });
 
