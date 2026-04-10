@@ -1,0 +1,10 @@
+# Superposition
+
+Qubits can exist in multiple states.
+
+## Example
+```qsharp
+H(q);
+Practice
+
+Create superposition using Hadamard gate.
