@@ -1,3 +1,19 @@
+<<<<<<< HEAD
+# Operators in Java
+
+- Arithmetic: +, -, *, /  
+- Comparison: ==, !=  
+- Logical: &&, ||  
+
+## Example
+```java
+int a = 5;
+int b = 3;
+System.out.println(a + b);
+Practice
+
+Check if a number is even or odd.
+=======
 # Java Operators
 
 ## Arithmetic Operators
@@ -223,3 +239,4 @@ public class OperatorExamples {
 - Be careful with operator precedence in complex expressions
 - Use meaningful variable names to improve readability
 - Avoid complex nested operations without parentheses
+>>>>>>> 8f5b7d4c3fd7b8f91af9afa9065e83663bf4a476

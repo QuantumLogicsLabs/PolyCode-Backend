@@ -1,4 +1,4 @@
-# Java Development Hub
+# Java Development repositories
 
 A comprehensive, well-organized Java development environment containing projects, algorithms, utilities, and extensive documentation with a modern web interface for browsing and learning.
 

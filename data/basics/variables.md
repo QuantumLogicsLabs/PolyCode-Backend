@@ -1,3 +1,16 @@
+<<<<<<< HEAD
+# Variables in Java
+
+Variables store data values.
+
+## Example
+```java
+int age = 20;
+String name = "Ali";
+Practice
+
+Declare variables for your name and age.
+=======
 # Java Variables
 
 ## Variable Declaration
@@ -170,3 +183,4 @@ public class VariableExamples {
 - Follow naming conventions (camelCase)
 - Declare variables in smallest possible scope
 - Use wrapper classes when null values are needed
+>>>>>>> 8f5b7d4c3fd7b8f91af9afa9065e83663bf4a476
