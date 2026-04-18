@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
   }
 
   // Create a temporary directory for code execution if it doesn't exist
-  const tempDir = path.join(__dirname, "..", "tmp");
+  const tempDir = path.join(__dirname, "..", "..", "runtime", "tmp");
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir);
   }

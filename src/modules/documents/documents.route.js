@@ -15,7 +15,7 @@ try {
 }
 
 // Path to your folders
-const DATA_BASE_PATH = path.join(__dirname, "../data");
+const DATA_BASE_PATH = path.join(__dirname, "../../../data");
 const PYTHON_DATA_PATH = path.join(DATA_BASE_PATH, "Python", "data");
 const RUN_TIMEOUT_MS = 8000;
 let resolvedPythonCommand = null;

@@ -1,37 +1,37 @@
-const fs = require("fs");
-const path = require("path");
-const { marked } = require("marked");
+const fs = require('fs');
+const path = require('path');
+const { marked } = require('marked');
 
 /**
  * Parse the monolithic Python.txt dump file OR a real folder.
  * Since the user placed everything in one .txt export, we parse that.
  */
 
-const SUPPORTED_EXTENSIONS = [".md", ".py", ".txt"];
+const SUPPORTED_EXTENSIONS = ['.md', '.py', '.txt'];
 
 /**
  * Extract category from file path
  */
 function getCategory(filePath) {
-  const parts = filePath.replace(/\\/g, "/").split("/").filter(Boolean);
-  if (parts.length === 0) return "root";
-  if (parts[0] === "documentation") return parts[1] || "documentation";
-  if (parts[0] === "src") return parts[1] || "src";
-  return parts[0] || "root";
+  const parts = filePath.replace(/\\/g, '/').split('/').filter(Boolean);
+  if (parts.length === 0) return 'root';
+  if (parts[0] === 'documentation') return parts[1] || 'documentation';
+  if (parts[0] === 'src') return parts[1] || 'src';
+  return parts[0] || 'root';
 }
 
 function getSubcategory(filePath) {
-  const parts = filePath.replace(/\\/g, "/").split("/").filter(Boolean);
+  const parts = filePath.replace(/\\/g, '/').split('/').filter(Boolean);
   if (parts.length >= 3) return parts[2];
-  return "";
+  return '';
 }
 
 function getFileType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".md") return "md";
-  if (ext === ".py") return "py";
-  if (ext === ".txt") return "txt";
-  return "other";
+  if (ext === '.md') return 'md';
+  if (ext === '.py') return 'py';
+  if (ext === '.txt') return 'txt';
+  return 'other';
 }
 
 function extractTitle(content, filePath) {
@@ -40,13 +40,13 @@ function extractTitle(content, filePath) {
   if (h1Match) return h1Match[1].trim();
   // Try filename
   const base = path.basename(filePath, path.extname(filePath));
-  return base.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return base.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function extractCodeBlocks(content, fileType) {
   const blocks = [];
-  if (fileType === "py") {
-    blocks.push({ language: "python", code: content });
+  if (fileType === 'py') {
+    blocks.push({ language: 'python', code: content });
     return blocks;
   }
   // Extract fenced code blocks from markdown
@@ -54,8 +54,8 @@ function extractCodeBlocks(content, fileType) {
   let match;
   while ((match = fenceRegex.exec(content)) !== null) {
     blocks.push({
-      language: match[1] || "python",
-      code: match[2].trim(),
+      language: match[1] || 'python',
+      code: match[2].trim()
     });
   }
   return blocks;
@@ -63,33 +63,14 @@ function extractCodeBlocks(content, fileType) {
 
 function extractTags(content, filePath) {
   const tags = new Set();
-  const pathParts = filePath.replace(/\\/g, "/").split("/");
-  pathParts.forEach((p) => {
-    if (p && !p.includes(".")) tags.add(p.toLowerCase());
-  });
+  const pathParts = filePath.replace(/\\/g, '/').split('/');
+  pathParts.forEach(p => { if (p && !p.includes('.')) tags.add(p.toLowerCase()); });
 
   // Common Python keywords
-  const keywords = [
-    "python",
-    "algorithm",
-    "data structure",
-    "function",
-    "class",
-    "loop",
-    "recursion",
-    "sorting",
-    "searching",
-    "graph",
-    "tree",
-    "dynamic programming",
-    "api",
-    "flask",
-    "fastapi",
-    "machine learning",
-    "numpy",
-    "pandas",
-  ];
-  keywords.forEach((kw) => {
+  const keywords = ['python', 'algorithm', 'data structure', 'function', 'class',
+    'loop', 'recursion', 'sorting', 'searching', 'graph', 'tree', 'dynamic programming',
+    'api', 'flask', 'fastapi', 'machine learning', 'numpy', 'pandas'];
+  keywords.forEach(kw => {
     if (content.toLowerCase().includes(kw)) tags.add(kw);
   });
   return [...tags].slice(0, 10);
@@ -99,7 +80,7 @@ function extractTags(content, filePath) {
  * Convert markdown content to HTML with syntax highlighting classes
  */
 function markdownToHtml(content, fileType) {
-  if (fileType === "py") {
+  if (fileType === 'py') {
     // Wrap entire Python file in a code block
     return `<pre class="code-block language-python"><code>${escapeHtml(content)}</code></pre>`;
   }
@@ -112,22 +93,21 @@ function markdownToHtml(content, fileType) {
 
 function escapeHtml(str) {
   return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
  * Parse the single exported Python.txt file into an array of document objects
  */
 function parsePythonTxtExport(txtFilePath) {
-  const raw = fs.readFileSync(txtFilePath, "utf-8");
+  const raw = fs.readFileSync(txtFilePath, 'utf-8');
   const documents = [];
 
   // Split on the FILE: header markers
-  const fileRegex =
-    /^-{80}\nFILE: (.+?)\n-{80}\n([\s\S]*?)(?=(?:\n-{80}\n(?:FILE:|={80})))/gm;
+  const fileRegex = /^-{80}\nFILE: (.+?)\n-{80}\n([\s\S]*?)(?=(?:\n-{80}\n(?:FILE:|={80})))/gm;
 
   let match;
   while ((match = fileRegex.exec(raw)) !== null) {
@@ -137,7 +117,7 @@ function parsePythonTxtExport(txtFilePath) {
     if (!content) continue;
 
     const ext = path.extname(filePath).toLowerCase();
-    if (![".md", ".py", ".txt"].includes(ext)) continue;
+    if (!['.md', '.py', '.txt'].includes(ext)) continue;
 
     const fileType = getFileType(filePath);
     const title = extractTitle(content, filePath);
@@ -177,15 +157,14 @@ function parseDirectory(dirPath, baseDir = null) {
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name.startsWith(".")) continue;
+      if (entry.name.startsWith('.')) continue;
       documents.push(...parseDirectory(fullPath, baseDir));
     } else if (entry.isFile()) {
       const ext = path.extname(entry.name).toLowerCase();
       if (!SUPPORTED_EXTENSIONS.includes(ext)) continue;
 
-      const content = fs.readFileSync(fullPath, "utf-8");
-      const relativePath =
-        "/" + path.relative(baseDir, fullPath).replace(/\\/g, "/");
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const relativePath = '/' + path.relative(baseDir, fullPath).replace(/\\/g, '/');
       const fileType = getFileType(fullPath);
 
       documents.push({
