@@ -221,14 +221,14 @@ function createWorkerTask(operation, data) {
 // ─── Optimized File Operations ───────────────────────────────────────────────────────
 // Batch file reading for better performance
 async function batchReadFiles(filePaths, options = {}) {
-  const { readMetadata = true, readContent = false } = options;
+  const { readMetadata = true, readContent = false, basePath = DATA_BASE_PATH } = options;
   const batchSize = 10; // Process files in batches to avoid overwhelming the system
 
   const results = [];
   for (let i = 0; i < filePaths.length; i += batchSize) {
     const batch = filePaths.slice(i, i + batchSize);
     const batchPromises = batch.map((filePath) =>
-      getFileInfo(filePath, path.relative(DATA_BASE_PATH, filePath), options),
+      getFileInfo(filePath, path.relative(basePath, filePath), options),
     );
     const batchResults = await Promise.allSettled(batchPromises);
 
@@ -426,7 +426,7 @@ async function scanDirectory(
     // Process files in parallel batches
     const fileResults = await batchReadFiles(
       files.map((f) => f.fullPath),
-      { readMetadata: true },
+      { readMetadata: true, basePath },
     );
 
     // Recursively scan directories with limited parallelism
@@ -474,6 +474,7 @@ router.get("/", async (req, res) => {
         language === "all"
           ? DATA_BASE_PATH
           : path.join(DATA_BASE_PATH, language);
+      console.log(`[DEBUG] GET /: language='${language}', scanPath='${scanPath}'`);
       let allDocuments = [];
 
       if (
@@ -483,6 +484,10 @@ router.get("/", async (req, res) => {
           .catch(() => false)
       ) {
         allDocuments = await scanDirectory(scanPath, scanPath);
+        console.log(`[DEBUG] allDocuments length: ${allDocuments.length}`);
+        if (allDocuments.length > 0) {
+            console.log(`[DEBUG] First doc path: ${allDocuments[0].path}`);
+        }
       }
 
       const uniqueDocs = allDocuments.reduce((acc, doc) => {

@@ -8,3 +8,8 @@ node_modules
 /build/
 /coverage
 /coverage/
+
+# make-folder-txt
+.txtconfig
+.txtignore
+backend.txt
