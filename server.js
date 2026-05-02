@@ -8,18 +8,14 @@ let compression;
 try {
   compression = require("compression");
 } catch (e) {
-  console.warn(
-    "⚠️  Compression module not found. Run: npm install compression",
-  );
+  console.warn("⚠️  Compression module not found. Run: npm install compression");
 }
 
 let rateLimit;
 try {
   rateLimit = require("express-rate-limit");
 } catch (e) {
-  console.warn(
-    "⚠️  Rate limiting module not found. Run: npm install express-rate-limit",
-  );
+  console.warn("⚠️  Rate limiting module not found. Run: npm install express-rate-limit");
 }
 
 // ─── OpenAPI Spec ─────────────────────────────────────────────────────────────
@@ -177,11 +173,7 @@ app.get("/languages", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    message: "Backend is running",
-  });
+  res.json({ status: "OK", timestamp: new Date().toISOString(), message: "Backend is running" });
 });
 
 if (process.env.NODE_ENV === "production") {
