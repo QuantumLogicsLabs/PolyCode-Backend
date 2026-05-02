@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const { connectToMongoDB } = require("./src/config/database");
 
 let compression;
 try {
@@ -155,6 +156,15 @@ app.get("/api-docs", (req, res) => {
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// Initialize MongoDB connection
+connectToMongoDB().catch((err) => {
+  console.error("MongoDB initialization error:", err.message);
+});
+
+// Auth Routes (User & Progress)
+const authRoutes = require("./src/modules/auth/auth.router");
+app.use("/api/auth", authRoutes);
+
 const documentRoutes = require("./src/modules/documents/documents.router");
 app.use("/api/documents", documentRoutes);
 
