@@ -13,3 +13,4 @@ node_modules
 /.txtconfig
 /.txtignore
 /backend.txt
+.vscode/
