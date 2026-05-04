@@ -120,26 +120,72 @@ async function executePython(req, res) {
 }
 
 /**
+ * Reconstruct the file path from Express params.
+ *
+ * ROOT CAUSE of the comma bug:
+ *   Express 5 with route  GET "/*path"  stores each slash-separated segment
+ *   of the wildcard in req.params.path as an ARRAY.
+ *   e.g. for URL  /data/1-Getting%20Started/Control%20Flow.md
+ *        req.params.path === ["data", "1-Getting Started", "Control Flow.md"]
+ *   Calling toString() or Array.join with the wrong separator gives commas:
+ *        "data,1-Getting Started,Control Flow.md"   <- the bug we saw in logs
+ *
+ * FIX: Always join array segments with "/" regardless of what Express hands us.
+ *
+ * We also handle every other variant Express might produce:
+ *   - plain string  (Express 4 "/*" or single-segment path)
+ *   - array         (Express 5 "/*path" multi-segment)
+ *   - req.params[0] (Express 4 unnamed wildcard)
+ *   - raw URL path  (last-resort fallback)
+ */
+function resolveRequestedPath(req) {
+  let raw = req.params.path ?? req.params[0];
+
+  if (raw === undefined || raw === null) {
+    // Fallback: strip query string and leading slash from the raw URL
+    raw = req.url.split("?")[0].replace(/^\/+/, "");
+  }
+
+  // KEY FIX: Express 5 gives an array - join with "/" not ","
+  if (Array.isArray(raw)) {
+    raw = raw.join("/");
+  }
+
+  // Decode percent-encoding, normalise backslashes, remove leading slash
+  return decodeURIComponent(String(raw))
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+}
+
+/**
  * GET /api/documents/* - Get single document with related code
  */
 async function getDocument(req, res) {
   try {
-    let requestedPath = Array.isArray(req.params.path)
-      ? req.params.path.join("/")
-      : req.params.path;
-    const { language = "all" } = req.query;
-    let fullPath = path.join(
-      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language),
-      requestedPath,
-    );
+    const requestedPath = resolveRequestedPath(req);
 
-    if (!path.resolve(fullPath).startsWith(path.resolve(DATA_BASE_PATH)))
+    if (!requestedPath) {
+      return res.status(400).json({ error: "File path is required" });
+    }
+
+    const { language = "all" } = req.query;
+    const basePath =
+      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language);
+
+    const fullPath = path.join(basePath, requestedPath);
+
+    // Security: prevent directory traversal
+    if (!path.resolve(fullPath).startsWith(path.resolve(DATA_BASE_PATH))) {
       return res.status(403).json({ error: "Access denied" });
+    }
 
     const fileInfo = await getFileInfo(fullPath, requestedPath, {
       readContent: true,
     });
-    if (!fileInfo) return res.status(404).json({ error: "Document not found" });
+
+    if (!fileInfo) {
+      return res.status(404).json({ error: "Document not found" });
+    }
 
     if (fileInfo.fileType === "markdown") {
       const scanPath =
@@ -161,6 +207,7 @@ async function getDocument(req, res) {
       });
       fileInfo.isTopic = true;
     }
+
     res.json(fileInfo);
   } catch (err) {
     res.status(500).json({ error: err.message });

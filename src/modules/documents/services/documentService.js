@@ -20,13 +20,14 @@ async function getDocuments(filters = {}) {
     ungrouped = false,
   } = filters;
 
+  // FIX: ensure limit is always a number
+  const limitNum = parseInt(limit) || 20;
+
   let finalDocs = getFromCache(cache.documents, language);
 
   if (!finalDocs) {
     let scanPath =
-      language === "all"
-        ? DATA_BASE_PATH
-        : path.join(DATA_BASE_PATH, language);
+      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language);
     let allDocuments = [];
 
     if (
@@ -54,9 +55,7 @@ async function getDocuments(filters = {}) {
 
   // Group code with related topics
   const groupedDocs = topicDocs.map((topic) => {
-    const topicKeywords = topic.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
+    const topicKeywords = topic.title.toLowerCase().replace(/[^a-z0-9]/g, "");
     const topicKeywordsNormalized = topicKeywords.endsWith("s")
       ? topicKeywords.slice(0, -1)
       : topicKeywords;
@@ -95,11 +94,7 @@ async function getDocuments(filters = {}) {
 
   if (fileType && fileType !== "all") {
     let targetType =
-      fileType === "md"
-        ? "markdown"
-        : fileType === "py"
-          ? "python"
-          : fileType;
+      fileType === "md" ? "markdown" : fileType === "py" ? "python" : fileType;
     filteredDocs = filteredDocs.filter(
       (doc) =>
         doc.fileType === targetType ||
@@ -135,9 +130,9 @@ async function getDocuments(filters = {}) {
         : 1,
   );
 
-  // Paginate
-  const skip = (parseInt(page) - 1) * parseInt(limit);
-  const paginatedDocs = filteredDocs.slice(skip, skip + parseInt(limit));
+  // Paginate - FIX: use limitNum (already parsed int)
+  const skip = (parseInt(page) - 1) * limitNum;
+  const paginatedDocs = filteredDocs.slice(skip, skip + limitNum);
   const listDocs = paginatedDocs.map(({ content, relatedCode, ...rest }) => ({
     ...rest,
     relatedCode: relatedCode
@@ -149,7 +144,7 @@ async function getDocuments(filters = {}) {
     documents: listDocs,
     total: filteredDocs.length,
     page: parseInt(page),
-    pages: Math.ceil(filteredDocs.length / limit),
+    pages: Math.ceil(filteredDocs.length / limitNum),
   };
 }
 
@@ -163,9 +158,7 @@ async function getDocumentStats(language = "all") {
 
   if (!stats) {
     let scanPath =
-      language === "all"
-        ? DATA_BASE_PATH
-        : path.join(DATA_BASE_PATH, language);
+      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language);
     let docs = (await fs
       .access(scanPath)
       .then(() => true)
@@ -207,20 +200,28 @@ async function getDocumentStats(language = "all") {
 }
 
 /**
- * Get available languages
+ * Get available languages (top-level folders in DATA_BASE_PATH)
+ * FIX: was using getFromCache(cache, null) which is broken — cache root
+ *      is not a Map. Now uses the dedicated cache.languages store.
  * @returns {Promise<string[]>} Array of language folder names
  */
 async function getLanguages() {
-  let languages = getFromCache(cache, null);
-  if (!languages) {
+  // FIX: use cache.languages (the dedicated { data, timestamp } store)
+  const cached = getFromCache(cache.languages, null);
+  if (cached) return cached;
+
+  try {
     const entries = await fs.readdir(DATA_BASE_PATH, { withFileTypes: true });
-    languages = entries
+    const languages = entries
       .filter((e) => e.isDirectory() && !e.name.startsWith("."))
       .map((e) => e.name)
       .sort();
-    setInCache(cache, null, languages);
+    setInCache(cache.languages, null, languages);
+    return languages;
+  } catch (err) {
+    console.error("Error reading DATA_BASE_PATH for languages:", err.message);
+    return [];
   }
-  return languages;
 }
 
 /**
@@ -233,9 +234,7 @@ async function getDocumentTree(language = "all") {
 
   if (!tree) {
     let scanPath =
-      language === "all"
-        ? DATA_BASE_PATH
-        : path.join(DATA_BASE_PATH, language);
+      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language);
     if (
       !(await fs
         .access(scanPath)
@@ -273,9 +272,7 @@ async function getDocumentCategories(language = "all") {
 
   if (!categories) {
     let scanPath =
-      language === "all"
-        ? DATA_BASE_PATH
-        : path.join(DATA_BASE_PATH, language);
+      language === "all" ? DATA_BASE_PATH : path.join(DATA_BASE_PATH, language);
     let docs = (await fs
       .access(scanPath)
       .then(() => true)

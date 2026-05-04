@@ -134,6 +134,8 @@ async function getFileInfo(filePath, relativePath, options = {}) {
 
 /**
  * Scan directory recursively for documents
+ * FIX: Removed the artificial directories.slice(0, 5) limit that was
+ *      causing most data folder contents to be silently dropped.
  * @param {string} dirPath - Directory path to scan
  * @param {string} basePath - Base path for relative paths
  * @param {number} maxDepth - Maximum recursion depth
@@ -176,24 +178,33 @@ async function scanDirectory(
       { readMetadata: true },
     );
 
-    // Recursively scan directories with limited parallelism
-    const dirPromises = directories
-      .slice(0, 5)
-      .map(async ({ fullPath, relativePath }) => {
-        try {
-          return await scanDirectory(
-            fullPath,
-            basePath,
-            maxDepth,
-            currentDepth + 1,
-          );
-        } catch (error) {
-          console.error(`Error scanning directory ${fullPath}:`, error.message);
-          return [];
-        }
-      });
-
-    const dirResults = await Promise.all(dirPromises);
+    // FIX: Removed .slice(0, 5) — that limited scanning to only the first 5
+    // subdirectories, silently dropping all others and causing "file not found" errors.
+    // Process ALL subdirectories with limited concurrency instead.
+    const CONCURRENCY = 8;
+    const dirResults = [];
+    for (let i = 0; i < directories.length; i += CONCURRENCY) {
+      const batch = directories.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.all(
+        batch.map(async ({ fullPath }) => {
+          try {
+            return await scanDirectory(
+              fullPath,
+              basePath,
+              maxDepth,
+              currentDepth + 1,
+            );
+          } catch (error) {
+            console.error(
+              `Error scanning directory ${fullPath}:`,
+              error.message,
+            );
+            return [];
+          }
+        }),
+      );
+      dirResults.push(...batchResults);
+    }
 
     return [...fileResults.filter(Boolean), ...dirResults.flat()];
   } catch (error) {
@@ -216,10 +227,7 @@ async function buildTree(dirPath, basePath, maxDepth = 8, currentDepth = 0) {
   const children = [];
 
   for (const entry of entries) {
-    if (
-      entry.name.startsWith(".") ||
-      IGNORE_DIRS.includes(entry.name)
-    )
+    if (entry.name.startsWith(".") || IGNORE_DIRS.includes(entry.name))
       continue;
 
     const fullPath = path.join(dirPath, entry.name);
