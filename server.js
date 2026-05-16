@@ -167,6 +167,9 @@ app.use("/api/documents", documentRoutes);
 const playgroundRoutes = require("./src/modules/playground/playground.route");
 app.use("/api/playground", playgroundRoutes);
 
+const challengeRoutes = require('./src/routes/challenge')
+app.use("/api/challenges", challengeRoutes);
+
 // Backward compatibility for older frontend builds requesting /languages directly
 app.get("/languages", (req, res) => {
   return res.redirect(307, "/api/documents/languages");

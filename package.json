@@ -23,7 +23,8 @@
     "highlight.js": "^11.11.1",
     "jsonwebtoken": "^9.0.3",
     "marked": "^17.0.4",
-    "mongoose": "^9.3.0",
+    "mongoose": "^9.6.2",
+    "node-cron": "^4.2.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

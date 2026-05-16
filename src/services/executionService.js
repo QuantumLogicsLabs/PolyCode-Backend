@@ -230,9 +230,119 @@ async function executeJavaScriptCode(code) {
   });
 }
 
+/**
+ * Execute Java code
+ * @param {string} code - Java code to execute (class must be named 'Solution')
+ * @returns {Promise<Object>} Execution result
+ */
+async function executeJavaCode(code) {
+  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+  const id = crypto.randomBytes(4).toString("hex");
+  const folderPath = path.join(RUNTIME_TMP_PATH, `java_${id}`);
+  await fs.mkdir(folderPath, { recursive: true });
+  
+  const filepath = path.join(folderPath, "Solution.java");
+  await fs.writeFile(filepath, code, "utf8");
+
+  return new Promise(async (resolve, reject) => {
+    // 1. Compile
+    try {
+      const compile = spawn("javac", ["Solution.java"], { cwd: folderPath });
+      let compileErr = "";
+      compile.stderr.on("data", (data) => compileErr += data.toString());
+      
+      compile.on("close", async (code) => {
+        if (code !== 0) {
+          await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
+          return resolve({ stdout: "", stderr: compileErr, error: `Compilation Error:\n${compileErr}`, exitCode: code });
+        }
+
+        // 2. Run
+        const child = spawn("java", ["Solution"], { cwd: folderPath });
+        let stdout = "";
+        let stderr = "";
+        const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
+
+        child.stdout.on("data", (chunk) => stdout = appendWithCap(stdout, chunk.toString()));
+        child.stderr.on("data", (chunk) => stderr = appendWithCap(stderr, chunk.toString()));
+
+        child.on("close", async (exitCode) => {
+          clearTimeout(timer);
+          await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
+          resolve({
+            stdout: stdout.trimEnd(),
+            stderr: stderr.trimEnd(),
+            error: exitCode === 0 ? null : (stderr.trimEnd() || `Java exited with code ${exitCode}`),
+            exitCode
+          });
+        });
+      });
+    } catch (e) {
+      await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
+      reject(e);
+    }
+  });
+}
+
+/**
+ * Execute C++ code
+ * @param {string} code - C++ code to execute
+ * @returns {Promise<Object>} Execution result
+ */
+async function executeCppCode(code) {
+  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+  const id = crypto.randomBytes(8).toString("hex");
+  const sourceFile = path.join(RUNTIME_TMP_PATH, `run_${id}.cpp`);
+  const exeFile = path.join(RUNTIME_TMP_PATH, `run_${id}${process.platform === 'win32' ? '.exe' : ''}`);
+
+  await fs.writeFile(sourceFile, code, "utf8");
+
+  return new Promise(async (resolve, reject) => {
+    // 1. Compile
+    try {
+      const compile = spawn("g++", ["-o", exeFile, sourceFile], { cwd: RUNTIME_TMP_PATH });
+      let compileErr = "";
+      compile.stderr.on("data", (data) => compileErr += data.toString());
+
+      compile.on("close", async (code) => {
+        if (code !== 0) {
+          await fs.unlink(sourceFile).catch(() => {});
+          return resolve({ stdout: "", stderr: compileErr, error: `Compilation Error:\n${compileErr}`, exitCode: code });
+        }
+
+        // 2. Run
+        const child = spawn(exeFile, [], { cwd: RUNTIME_TMP_PATH });
+        let stdout = "";
+        let stderr = "";
+        const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
+
+        child.stdout.on("data", (chunk) => stdout = appendWithCap(stdout, chunk.toString()));
+        child.stderr.on("data", (chunk) => stderr = appendWithCap(stderr, chunk.toString()));
+
+        child.on("close", async (exitCode) => {
+          clearTimeout(timer);
+          await fs.unlink(sourceFile).catch(() => {});
+          await fs.unlink(exeFile).catch(() => {});
+          resolve({
+            stdout: stdout.trimEnd(),
+            stderr: stderr.trimEnd(),
+            error: exitCode === 0 ? null : (stderr.trimEnd() || `C++ exited with code ${exitCode}`),
+            exitCode
+          });
+        });
+      });
+    } catch (e) {
+      await fs.unlink(sourceFile).catch(() => {});
+      reject(e);
+    }
+  });
+}
+
 module.exports = {
   executePythonCode,
   executeJavaScriptCode,
+  executeJavaCode,
+  executeCppCode,
   runSpawn,
   resolvePythonCommand,
 };
