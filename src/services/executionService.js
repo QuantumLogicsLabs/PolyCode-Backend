@@ -242,9 +242,9 @@ builtins.input = __polycode_auto_input
  * @returns {Promise<Object>} Execution result
  */
 async function executeJavaScriptCode(code) {
-  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+  const runtimeDir = await getWritableRuntimeDir();
   const filename = `run_${crypto.randomBytes(8).toString("hex")}.js`;
-  const filepath = path.join(RUNTIME_TMP_PATH, filename);
+  const filepath = path.join(runtimeDir, filename);
 
   await fs.writeFile(filepath, code, "utf8");
 
@@ -252,7 +252,7 @@ async function executeJavaScriptCode(code) {
     let child;
     try {
       child = await runSpawn("node", [filepath], {
-        cwd: RUNTIME_TMP_PATH,
+        cwd: runtimeDir,
         env: { ...process.env },
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -303,9 +303,9 @@ async function executeJavaScriptCode(code) {
  * @returns {Promise<Object>} Execution result
  */
 async function executeJavaCode(code) {
-  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+  const runtimeDir = await getWritableRuntimeDir();
   const id = crypto.randomBytes(4).toString("hex");
-  const folderPath = path.join(RUNTIME_TMP_PATH, `java_${id}`);
+  const folderPath = path.join(runtimeDir, `java_${id}`);
   await fs.mkdir(folderPath, { recursive: true });
   
   const filepath = path.join(folderPath, "Solution.java");
@@ -357,15 +357,23 @@ async function executeJavaCode(code) {
  * @returns {Promise<Object>} Execution result
  */
 async function executeCppCode(code, stdin = "") {
-  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+  if (isServerlessRuntime()) {
+    return executeCppViaPiston(code, stdin);
+  }
+
+  let runtimeDir;
+  try {
+    runtimeDir = await getWritableRuntimeDir();
+  } catch (_) {
+    return executeCppViaPiston(code, stdin);
+  }
+
   const id = crypto.randomBytes(8).toString("hex");
-  const sourceFile = path.join(RUNTIME_TMP_PATH, `run_${id}.cpp`);
+  const sourceFile = path.join(runtimeDir, `run_${id}.cpp`);
   const exeFile = path.join(
-    RUNTIME_TMP_PATH,
+    runtimeDir,
     `run_${id}${process.platform === "win32" ? ".exe" : ""}`,
   );
-  const compilerMissingMessage =
-    "C++ compiler (g++) is not installed on this server. Install MinGW/g++ or run code from a machine with g++ available.";
 
   await fs.writeFile(sourceFile, code, "utf8");
 
@@ -373,25 +381,21 @@ async function executeCppCode(code, stdin = "") {
     const cleanupSource = () => fs.unlink(sourceFile).catch(() => {});
     const cleanupBinary = () => fs.unlink(exeFile).catch(() => {});
 
-    const failCompilerMissing = async () => {
+    const fallbackToRemote = async () => {
       await cleanupSource();
-      resolve({
-        stdout: "",
-        stderr: compilerMissingMessage,
-        error: compilerMissingMessage,
-        exitCode: 1,
-      });
+      await cleanupBinary();
+      resolve(await executeCppViaPiston(code, stdin));
     };
 
     let compile;
     try {
       compile = await runSpawn("g++", ["-o", exeFile, sourceFile], {
-        cwd: RUNTIME_TMP_PATH,
+        cwd: runtimeDir,
         stdio: ["ignore", "pipe", "pipe"],
       });
     } catch (e) {
       if (e.code === "ENOENT") {
-        await failCompilerMissing();
+        await fallbackToRemote();
         return;
       }
       await cleanupSource();
@@ -411,7 +415,7 @@ async function executeCppCode(code, stdin = "") {
 
     compile.on("error", async (e) => {
       if (e.code === "ENOENT") {
-        await failCompilerMissing();
+        await fallbackToRemote();
         return;
       }
       await cleanupSource();
@@ -426,6 +430,7 @@ async function executeCppCode(code, stdin = "") {
     compile.on("close", async (compileCode) => {
       if (compileCode !== 0) {
         await cleanupSource();
+        await cleanupBinary();
         resolve({
           stdout: "",
           stderr: compileErr,
@@ -438,7 +443,7 @@ async function executeCppCode(code, stdin = "") {
       let child;
       try {
         child = await runSpawn(exeFile, [], {
-          cwd: RUNTIME_TMP_PATH,
+          cwd: runtimeDir,
           stdio: ["pipe", "pipe", "pipe"],
         });
       } catch (e) {
@@ -503,6 +508,7 @@ let resolvedRubyCommand = null;
 let rubyCommandProbeDone = false;
 const PISTON_API_URL =
   process.env.PISTON_API_URL || "https://emkc.org/api/v2/piston/execute";
+const PISTON_CPP_VERSION = process.env.PISTON_CPP_VERSION || "*";
 const PROBE_TIMEOUT_MS = 4000;
 
 function isServerlessRuntime() {
@@ -605,6 +611,84 @@ async function executeRubyViaPiston(code) {
       error: message,
       exitCode: 1,
     };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Compile and run C++ on a remote Piston instance.
+ * Used when no local g++ exists (notably serverless, where the bundle is read-only).
+ */
+async function executeCppViaPiston(code, stdin = "") {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
+  const apiKey = process.env.PISTON_API_TOKEN || process.env.PISTON_API_KEY;
+
+  const headers = { "Content-Type": "application/json" };
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  try {
+    const response = await fetch(PISTON_API_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        language: "c++",
+        version: PISTON_CPP_VERSION,
+        files: [{ name: "main.cpp", content: code }],
+        stdin,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        body.trim() || `Piston API responded with status ${response.status}`,
+      );
+    }
+
+    const data = await response.json();
+
+    // Piston reports compile failures separately from the run stage.
+    const compile = data.compile;
+    if (compile && compile.code !== 0) {
+      const compileErr = (compile.stderr || compile.output || "").trimEnd();
+      return {
+        stdout: "",
+        stderr: compileErr,
+        error: `Compilation Error:\n${compileErr}`,
+        exitCode: compile.code ?? 1,
+      };
+    }
+
+    const run = data.run || {};
+    const exitCode = run.code ?? 1;
+    const stderr = (run.stderr || "").trimEnd();
+    const stdout = (run.stdout || "").trimEnd();
+
+    return {
+      stdout,
+      stderr,
+      error:
+        exitCode === 0 ? null : stderr || `C++ exited with code ${exitCode}`,
+      exitCode,
+    };
+  } catch (error) {
+    const message =
+      error.name === "AbortError"
+        ? "C++ execution timed out."
+        : [
+            "C++ execution is unavailable: this server has no local g++ compiler and no reachable remote runner.",
+            "Set PISTON_API_URL to a self-hosted Piston instance — the public emkc.org API has been whitelist-only since 2026-02-15.",
+            error.message ? `Detail: ${error.message}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+    return { stdout: "", stderr: message, error: message, exitCode: 1 };
   } finally {
     clearTimeout(timer);
   }
