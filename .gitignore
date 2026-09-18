@@ -16,3 +16,8 @@ node_modules
 /backend.txt
 .vscode/
 /ml/exports/
+
+# Code execution scratch files (see src/services/executionService.js)
+/src/runtime/tmp/*
+!/src/runtime/tmp/.gitkeep
+!/src/runtime/tmp/app.log
