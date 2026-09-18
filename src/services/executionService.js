@@ -482,26 +482,39 @@ async function executeJavaCode(code, stdin = "") {
 }
 
 /**
- * Execute C++ code
- * @param {string} code - C++ code to execute
+ * Compile code with a native compiler (gcc/g++), run the binary, and clean up.
+ * @param {string} code - Source code
+ * @param {string} stdin - Standard input (optional)
+ * @param {Object} options
+ * @param {string} options.compiler - Compiler command, e.g. "gcc" or "g++"
+ * @param {string} options.extension - Source file extension, e.g. ".c"
+ * @param {string[]} options.linkArgs - Extra arguments placed after the source
+ * @param {string} options.label - Language name used in messages
  * @returns {Promise<Object>} Execution result
  */
-async function executeCppCode(code, stdin = "") {
-  await fs.mkdir(RUNTIME_TMP_PATH, { recursive: true });
+async function compileAndRunNative(
+  code,
+  stdin,
+  { compiler, extension, linkArgs = [], label },
+) {
+  const runtimeDir = await getWritableRuntimeDir();
   const id = crypto.randomBytes(8).toString("hex");
-  const sourceFile = path.join(RUNTIME_TMP_PATH, `run_${id}.cpp`);
+  const sourceFile = path.join(runtimeDir, `run_${id}${extension}`);
   const exeFile = path.join(
-    RUNTIME_TMP_PATH,
+    runtimeDir,
     `run_${id}${process.platform === "win32" ? ".exe" : ""}`,
   );
-  const compilerMissingMessage =
-    "C++ compiler (g++) is not installed on this server. Install MinGW/g++ or run code from a machine with g++ available.";
+  const compilerMissingMessage = `${label} compiler (${compiler}) is not installed on this server. Install MinGW/${compiler} or run code from a machine with ${compiler} available.`;
 
   await fs.writeFile(sourceFile, code, "utf8");
 
   return new Promise(async (resolve) => {
     const cleanupSource = () => fs.unlink(sourceFile).catch(() => {});
-    const cleanupBinary = () => fs.unlink(exeFile).catch(() => {});
+    // Windows keeps a killed process's image locked briefly; retry on EBUSY/EPERM.
+    const cleanupBinary = () =>
+      fs
+        .rm(exeFile, { force: true, maxRetries: 10, retryDelay: 100 })
+        .catch(() => {});
 
     const failCompilerMissing = async () => {
       await cleanupSource();
@@ -515,10 +528,14 @@ async function executeCppCode(code, stdin = "") {
 
     let compile;
     try {
-      compile = await runSpawn("g++", ["-o", exeFile, sourceFile], {
-        cwd: RUNTIME_TMP_PATH,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      compile = await runSpawn(
+        compiler,
+        ["-o", exeFile, sourceFile, ...linkArgs],
+        {
+          cwd: runtimeDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
     } catch (e) {
       if (e.code === "ENOENT") {
         await failCompilerMissing();
@@ -555,7 +572,9 @@ async function executeCppCode(code, stdin = "") {
 
     compile.on("close", async (compileCode) => {
       if (compileCode !== 0) {
+        // A failed link can still leave a partial binary behind.
         await cleanupSource();
+        await cleanupBinary();
         resolve({
           stdout: "",
           stderr: compileErr,
@@ -565,27 +584,39 @@ async function executeCppCode(code, stdin = "") {
         return;
       }
 
+      // Antivirus scanners (e.g. Windows Defender) briefly lock a freshly
+      // linked binary, so the first spawn can fail with EPERM/EBUSY.
       let child;
-      try {
-        child = await runSpawn(exeFile, [], {
-          cwd: RUNTIME_TMP_PATH,
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-      } catch (e) {
-        await cleanupSource();
-        await cleanupBinary();
-        resolve({
-          stdout: "",
-          stderr: e.message,
-          error: e.message,
-          exitCode: 1,
-        });
-        return;
+      for (let attempt = 1; !child; attempt++) {
+        try {
+          child = await runSpawn(exeFile, [], {
+            cwd: runtimeDir,
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+        } catch (e) {
+          if (attempt < 5 && ["EPERM", "EBUSY"].includes(e.code)) {
+            await new Promise((r) => setTimeout(r, 200));
+            continue;
+          }
+          await cleanupSource();
+          await cleanupBinary();
+          resolve({
+            stdout: "",
+            stderr: e.message,
+            error: e.message,
+            exitCode: 1,
+          });
+          return;
+        }
       }
 
       let stdout = "";
       let stderr = "";
-      const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGKILL");
+      }, RUN_TIMEOUT_MS);
 
       child.stdout.on("data", (chunk) => {
         stdout = appendWithCap(stdout, chunk.toString());
@@ -613,10 +644,11 @@ async function executeCppCode(code, stdin = "") {
         resolve({
           stdout: stdout.trimEnd(),
           stderr: stderr.trimEnd(),
-          error:
-            exitCode === 0
+          error: timedOut
+            ? timeoutMessage()
+            : exitCode === 0
               ? null
-              : stderr.trimEnd() || `C++ exited with code ${exitCode}`,
+              : stderr.trimEnd() || `${label} exited with code ${exitCode}`,
           exitCode,
         });
       });
@@ -626,6 +658,36 @@ async function executeCppCode(code, stdin = "") {
       }
       child.stdin.end();
     });
+  });
+}
+
+/**
+ * Execute C++ code
+ * @param {string} code - C++ code to execute
+ * @param {string} stdin - Standard input (optional)
+ * @returns {Promise<Object>} Execution result
+ */
+function executeCppCode(code, stdin = "") {
+  return compileAndRunNative(code, stdin, {
+    compiler: "g++",
+    extension: ".cpp",
+    label: "C++",
+  });
+}
+
+/**
+ * Execute C code. Compiled as C with gcc, not as C++: valid C such as
+ * `int *p = malloc(n)` or a variable named `new` is rejected by g++.
+ * @param {string} code - C code to execute
+ * @param {string} stdin - Standard input (optional)
+ * @returns {Promise<Object>} Execution result
+ */
+function executeCCode(code, stdin = "") {
+  return compileAndRunNative(code, stdin, {
+    compiler: "gcc",
+    extension: ".c",
+    linkArgs: ["-lm"],
+    label: "C",
   });
 }
 
@@ -876,6 +938,7 @@ module.exports = {
   executeJavaScriptCode,
   executeJavaCode,
   executeCppCode,
+  executeCCode,
   executeRubyCode,
   runSpawn,
   resolvePythonCommand,
