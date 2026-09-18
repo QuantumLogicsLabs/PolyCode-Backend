@@ -25,7 +25,7 @@ async function executeCode(language, code, stdin = "") {
     return await executeCppCode(code, stdin);
   }
   if (normalizedLanguage === "java") {
-    return await executeJavaCode(code);
+    return await executeJavaCode(code, stdin);
   }
 
   throw new Error(
