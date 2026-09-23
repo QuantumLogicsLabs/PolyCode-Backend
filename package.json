@@ -11,6 +11,7 @@
     "db:test": "node scripts/test-mongodb-connection.js",
     "clean-db": "node scripts/clean-db.js",
     "clean-users": "node scripts/clean-users.js",
+    "check:course-ids": "node scripts/check-course-ids.js",
     "smoke:learn-xp": "node scripts/smoke-learn-xp.js",
     "curriculum:seed": "node scripts/seed-numbered-curriculum.js",
     "curriculum:seed:force": "node scripts/seed-numbered-curriculum.js --force",
