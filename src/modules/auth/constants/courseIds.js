@@ -55,6 +55,7 @@ const COURSE_IDS = [
   "ruby-gems",
   "ruby-blocks-modules",
   "ruby-file-handling",
+  "ruby-oop",
   "ruby-on-rails",
   "csharp-fundamentals",
   "csharp-aspnet-basics",
