@@ -25,6 +25,11 @@
     "ml:sync-pinecone:dry": "node scripts/sync-prompts-pinecone.js --dry-run",
     "drive:oauth-setup": "node scripts/google-drive-oauth-setup.js"
   },
+  "nodemonConfig": {
+    "ignore": [
+      "src/runtime/tmp/*"
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
