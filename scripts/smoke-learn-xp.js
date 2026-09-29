@@ -1,6 +1,6 @@
 /**
- * Smoke-test completeLesson persistence for two courses.
- * Usage: node scripts/smoke-learn-xp.js
+ * Smoke-test completeLesson persistence for the given courses.
+ * Usage: node scripts/smoke-learn-xp.js [courseId ...]
  *
  * Requires backend/.env with MONGODB_URI (and creates a temp smoke user).
  */
@@ -13,7 +13,10 @@ const LearnerProgress = require("../src/modules/auth/models/LearnerProgress");
 const courseProgressService = require("../src/modules/auth/services/courseProgressService");
 
 const SMOKE_EMAIL = `smoke-learn-xp-${Date.now()}@example.com`;
-const COURSES = ["pointers-cpp", "java-spring-boot"];
+const DEFAULT_COURSES = ["pointers-cpp", "java-spring-boot"];
+const COURSES = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : DEFAULT_COURSES;
 
 async function main() {
   const uri = getMongoUri();

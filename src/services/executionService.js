@@ -297,63 +297,202 @@ async function executeJavaScriptCode(code) {
   });
 }
 
+const JAVA_MISSING_MESSAGE =
+  "Java (JDK) is not installed on this server. Install a JDK so that javac and java are on PATH.";
+
+function timeoutMessage() {
+  return `Execution timed out after ${RUN_TIMEOUT_MS / 1000}s. If your program reads input, make sure you provided enough input.`;
+}
+
+/**
+ * Work out the file name and main class for learner Java code.
+ * javac requires a public top-level class to live in a file of the same name,
+ * and `java` must be given the class that declares main(). Lessons use names
+ * like Main or HelloWorld, so these can't be hard-coded.
+ * @param {string} code - Java source
+ * @returns {{ fileName: string, runClass: string }}
+ */
+function resolveJavaEntryPoint(code = "") {
+  // Blank out comments and string/char literals so braces and keywords inside
+  // them don't confuse the scan. Replacements keep the source length the same.
+  const blank = (match) => match.replace(/[^\n]/g, " ");
+  const source = code
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/\/\/[^\n]*/g, blank)
+    .replace(/"(?:\\.|[^"\\\n])*"/g, blank)
+    .replace(/'(?:\\.|[^'\\\n])+'/g, blank);
+
+  const depthAt = [];
+  let depth = 0;
+  for (let i = 0; i < source.length; i++) {
+    depthAt[i] = depth;
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}") depth--;
+  }
+
+  const topLevelTypes = [];
+  const typePattern =
+    /\b(public\s+)?(?:(?:abstract|final|sealed|non-sealed|strictfp)\s+)*(?:class|interface|enum|record)\s+([A-Za-z_$][\w$]*)/g;
+  let match;
+  while ((match = typePattern.exec(source))) {
+    if (depthAt[match.index] === 0) {
+      topLevelTypes.push({
+        name: match[2],
+        isPublic: Boolean(match[1]),
+        index: match.index,
+      });
+    }
+  }
+
+  const publicType = topLevelTypes.find((type) => type.isPublic);
+  const mainIndex = source.search(/\bvoid\s+main\s*\(/);
+  const mainType =
+    mainIndex === -1
+      ? null
+      : topLevelTypes.filter((type) => type.index < mainIndex).pop();
+
+  const packageMatch = source.match(/^\s*package\s+([\w.]+)\s*;/m);
+  const className = mainType?.name || publicType?.name || "Solution";
+
+  return {
+    fileName: publicType?.name || className,
+    runClass: packageMatch ? `${packageMatch[1]}.${className}` : className,
+  };
+}
+
 /**
  * Execute Java code
- * @param {string} code - Java code to execute (class must be named 'Solution')
+ * @param {string} code - Java code to execute
+ * @param {string} stdin - Standard input (optional)
  * @returns {Promise<Object>} Execution result
  */
 async function executeJavaCode(code) {
   const runtimeDir = await getWritableRuntimeDir();
   const id = crypto.randomBytes(4).toString("hex");
+async function executeJavaCode(code, stdin = "") {
+  const runtimeDir = await getWritableRuntimeDir();
+  const id = crypto.randomBytes(8).toString("hex");
   const folderPath = path.join(runtimeDir, `java_${id}`);
   await fs.mkdir(folderPath, { recursive: true });
-  
-  const filepath = path.join(folderPath, "Solution.java");
-  await fs.writeFile(filepath, code, "utf8");
 
-  return new Promise(async (resolve, reject) => {
-    // 1. Compile
-    try {
-      const compile = spawn("javac", ["Solution.java"], { cwd: folderPath });
-      let compileErr = "";
-      compile.stderr.on("data", (data) => compileErr += data.toString());
-      
-      compile.on("close", async (code) => {
-        if (code !== 0) {
-          await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
-          return resolve({ stdout: "", stderr: compileErr, error: `Compilation Error:\n${compileErr}`, exitCode: code });
-        }
+  const { fileName, runClass } = resolveJavaEntryPoint(code);
+  const sourceFile = `${fileName}.java`;
+  await fs.writeFile(path.join(folderPath, sourceFile), code, "utf8");
 
-        // 2. Run
-        const child = spawn("java", ["Solution"], { cwd: folderPath });
-        let stdout = "";
-        let stderr = "";
-        const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
+  const cleanup = () =>
+    fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
+  const fail = async (message) => {
+    await cleanup();
+    return { stdout: "", stderr: message, error: message, exitCode: 1 };
+  };
+  const spawnErrorMessage = (e) =>
+    e.code === "ENOENT" ? JAVA_MISSING_MESSAGE : e.message;
 
-        child.stdout.on("data", (chunk) => stdout = appendWithCap(stdout, chunk.toString()));
-        child.stderr.on("data", (chunk) => stderr = appendWithCap(stderr, chunk.toString()));
+  // 1. Compile
+  let compile;
+  try {
+    compile = await runSpawn("javac", ["-d", ".", sourceFile], {
+      cwd: folderPath,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (e) {
+    return fail(spawnErrorMessage(e));
+  }
 
-        child.on("close", async (exitCode) => {
-          clearTimeout(timer);
-          await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
-          resolve({
-            stdout: stdout.trimEnd(),
-            stderr: stderr.trimEnd(),
-            error: exitCode === 0 ? null : (stderr.trimEnd() || `Java exited with code ${exitCode}`),
-            exitCode
-          });
-        });
+  const compileResult = await new Promise((resolve) => {
+    let compileErr = "";
+    compile.stderr.on("data", (data) => {
+      compileErr = appendWithCap(compileErr, data.toString());
+    });
+    compile.on("error", (e) => resolve({ spawnError: e }));
+    compile.on("close", (exitCode) => resolve({ exitCode, compileErr }));
+  });
+
+  if (compileResult.spawnError) {
+    return fail(spawnErrorMessage(compileResult.spawnError));
+  }
+  if (compileResult.exitCode !== 0) {
+    await cleanup();
+    return {
+      stdout: "",
+      stderr: compileResult.compileErr,
+      error: `Compilation Error:\n${compileResult.compileErr}`,
+      exitCode: compileResult.exitCode,
+    };
+  }
+
+  // 2. Run
+  let child;
+  try {
+    child = await runSpawn("java", [runClass], {
+      cwd: folderPath,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  } catch (e) {
+    return fail(spawnErrorMessage(e));
+  }
+
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    let settled = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, RUN_TIMEOUT_MS);
+
+    const finish = async (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      await cleanup();
+      resolve(result);
+    };
+
+    child.stdout.on("data", (chunk) => {
+      stdout = appendWithCap(stdout, chunk.toString());
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = appendWithCap(stderr, chunk.toString());
+    });
+    // The program may exit before reading all of stdin; ignore EPIPE.
+    child.stdin.on("error", () => {});
+
+    child.on("error", (e) => {
+      const message = spawnErrorMessage(e);
+      finish({ stdout: "", stderr: message, error: message, exitCode: 1 });
+    });
+
+    child.on("close", (exitCode) => {
+      finish({
+        stdout: stdout.trimEnd(),
+        stderr: stderr.trimEnd(),
+        error: timedOut
+          ? timeoutMessage()
+          : exitCode === 0
+            ? null
+            : stderr.trimEnd() || `Java exited with code ${exitCode}`,
+        exitCode,
       });
-    } catch (e) {
-      await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
-      reject(e);
+    });
+
+    if (stdin) {
+      child.stdin.write(stdin.endsWith("\n") ? stdin : `${stdin}\n`);
     }
+    child.stdin.end();
   });
 }
 
 /**
- * Execute C++ code
- * @param {string} code - C++ code to execute
+ * Compile code with a native compiler (gcc/g++), run the binary, and clean up.
+ * @param {string} code - Source code
+ * @param {string} stdin - Standard input (optional)
+ * @param {Object} options
+ * @param {string} options.compiler - Compiler command, e.g. "gcc" or "g++"
+ * @param {string} options.extension - Source file extension, e.g. ".c"
+ * @param {string[]} options.linkArgs - Extra arguments placed after the source
+ * @param {string} options.label - Language name used in messages
  * @returns {Promise<Object>} Execution result
  */
 async function executeCppCode(code, stdin = "") {
@@ -370,16 +509,29 @@ async function executeCppCode(code, stdin = "") {
 
   const id = crypto.randomBytes(8).toString("hex");
   const sourceFile = path.join(runtimeDir, `run_${id}.cpp`);
+async function compileAndRunNative(
+  code,
+  stdin,
+  { compiler, extension, linkArgs = [], label },
+) {
+  const runtimeDir = await getWritableRuntimeDir();
+  const id = crypto.randomBytes(8).toString("hex");
+  const sourceFile = path.join(runtimeDir, `run_${id}${extension}`);
   const exeFile = path.join(
     runtimeDir,
     `run_${id}${process.platform === "win32" ? ".exe" : ""}`,
   );
+  const compilerMissingMessage = `${label} compiler (${compiler}) is not installed on this server. Install MinGW/${compiler} or run code from a machine with ${compiler} available.`;
 
   await fs.writeFile(sourceFile, code, "utf8");
 
   return new Promise(async (resolve) => {
     const cleanupSource = () => fs.unlink(sourceFile).catch(() => {});
-    const cleanupBinary = () => fs.unlink(exeFile).catch(() => {});
+    // Windows keeps a killed process's image locked briefly; retry on EBUSY/EPERM.
+    const cleanupBinary = () =>
+      fs
+        .rm(exeFile, { force: true, maxRetries: 10, retryDelay: 100 })
+        .catch(() => {});
 
     const fallbackToRemote = async () => {
       await cleanupSource();
@@ -393,6 +545,14 @@ async function executeCppCode(code, stdin = "") {
         cwd: runtimeDir,
         stdio: ["ignore", "pipe", "pipe"],
       });
+      compile = await runSpawn(
+        compiler,
+        ["-o", exeFile, sourceFile, ...linkArgs],
+        {
+          cwd: runtimeDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
     } catch (e) {
       if (e.code === "ENOENT") {
         await fallbackToRemote();
@@ -429,6 +589,7 @@ async function executeCppCode(code, stdin = "") {
 
     compile.on("close", async (compileCode) => {
       if (compileCode !== 0) {
+        // A failed link can still leave a partial binary behind.
         await cleanupSource();
         await cleanupBinary();
         resolve({
@@ -440,6 +601,8 @@ async function executeCppCode(code, stdin = "") {
         return;
       }
 
+      // Antivirus scanners (e.g. Windows Defender) briefly lock a freshly
+      // linked binary, so the first spawn can fail with EPERM/EBUSY.
       let child;
       try {
         child = await runSpawn(exeFile, [], {
@@ -456,11 +619,36 @@ async function executeCppCode(code, stdin = "") {
           exitCode: 1,
         });
         return;
+      for (let attempt = 1; !child; attempt++) {
+        try {
+          child = await runSpawn(exeFile, [], {
+            cwd: runtimeDir,
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+        } catch (e) {
+          if (attempt < 5 && ["EPERM", "EBUSY"].includes(e.code)) {
+            await new Promise((r) => setTimeout(r, 200));
+            continue;
+          }
+          await cleanupSource();
+          await cleanupBinary();
+          resolve({
+            stdout: "",
+            stderr: e.message,
+            error: e.message,
+            exitCode: 1,
+          });
+          return;
+        }
       }
 
       let stdout = "";
       let stderr = "";
-      const timer = setTimeout(() => child.kill("SIGKILL"), RUN_TIMEOUT_MS);
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGKILL");
+      }, RUN_TIMEOUT_MS);
 
       child.stdout.on("data", (chunk) => {
         stdout = appendWithCap(stdout, chunk.toString());
@@ -488,10 +676,11 @@ async function executeCppCode(code, stdin = "") {
         resolve({
           stdout: stdout.trimEnd(),
           stderr: stderr.trimEnd(),
-          error:
-            exitCode === 0
+          error: timedOut
+            ? timeoutMessage()
+            : exitCode === 0
               ? null
-              : stderr.trimEnd() || `C++ exited with code ${exitCode}`,
+              : stderr.trimEnd() || `${label} exited with code ${exitCode}`,
           exitCode,
         });
       });
@@ -501,6 +690,36 @@ async function executeCppCode(code, stdin = "") {
       }
       child.stdin.end();
     });
+  });
+}
+
+/**
+ * Execute C++ code
+ * @param {string} code - C++ code to execute
+ * @param {string} stdin - Standard input (optional)
+ * @returns {Promise<Object>} Execution result
+ */
+function executeCppCode(code, stdin = "") {
+  return compileAndRunNative(code, stdin, {
+    compiler: "g++",
+    extension: ".cpp",
+    label: "C++",
+  });
+}
+
+/**
+ * Execute C code. Compiled as C with gcc, not as C++: valid C such as
+ * `int *p = malloc(n)` or a variable named `new` is rejected by g++.
+ * @param {string} code - C code to execute
+ * @param {string} stdin - Standard input (optional)
+ * @returns {Promise<Object>} Execution result
+ */
+function executeCCode(code, stdin = "") {
+  return compileAndRunNative(code, stdin, {
+    compiler: "gcc",
+    extension: ".c",
+    linkArgs: ["-lm"],
+    label: "C",
   });
 }
 
@@ -830,6 +1049,7 @@ module.exports = {
   executeJavaScriptCode,
   executeJavaCode,
   executeCppCode,
+  executeCCode,
   executeRubyCode,
   runSpawn,
   resolvePythonCommand,
