@@ -2,6 +2,7 @@ const {
   executePythonCode,
   executeJavaScriptCode,
   executeCppCode,
+  executeCCode,
   executeJavaCode,
 } = require("../../../services/executionService");
 
@@ -21,15 +22,18 @@ async function executeCode(language, code, stdin = "") {
   if (["python", "py"].includes(normalizedLanguage)) {
     return await executePythonCode(code, stdin);
   }
-  if (["cpp", "c++", "c"].includes(normalizedLanguage)) {
+  if (["cpp", "c++"].includes(normalizedLanguage)) {
     return await executeCppCode(code, stdin);
   }
+  if (normalizedLanguage === "c") {
+    return await executeCCode(code, stdin);
+  }
   if (normalizedLanguage === "java") {
-    return await executeJavaCode(code);
+    return await executeJavaCode(code, stdin);
   }
 
   throw new Error(
-    `Unsupported language: ${language}. Supported on server: javascript, python, c++, java`,
+    `Unsupported language: ${language}. Supported on server: javascript, python, c, c++, java`,
   );
 }
 
