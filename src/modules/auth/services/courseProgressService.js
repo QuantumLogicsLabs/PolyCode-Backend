@@ -163,12 +163,32 @@ function normalizeQuizAttemptValue(value) {
   return null;
 }
 
+function hasAnswer(attempt) {
+  return attempt?.selectedIndex !== null && attempt?.selectedIndex !== undefined;
+}
+
+/**
+ * Only the learner's first answer to each question counts. Once a question
+ * has an answer, later picks (a second click, "Solve again", an old tab, a
+ * login merge) can't replace it. The one exception: an older answer saved
+ * without `correct` gets it filled in when the same option is sent again.
+ */
 function mergeQuizAttempts(existing = {}, incoming = {}) {
   const next = { ...(existing || {}) };
   for (const [key, raw] of Object.entries(incoming || {})) {
     const normalized = normalizeQuizAttemptValue(raw);
     if (!normalized) continue;
     const prev = normalizeQuizAttemptValue(next[key]);
+    if (hasAnswer(prev)) {
+      const fillsMissingResult =
+        prev.correct === null &&
+        normalized.correct !== null &&
+        normalized.selectedIndex === prev.selectedIndex;
+      if (fillsMissingResult) {
+        next[key] = { ...prev, correct: normalized.correct };
+      }
+      continue;
+    }
     next[key] = {
       selectedIndex:
         normalized.selectedIndex !== null && normalized.selectedIndex !== undefined
@@ -196,7 +216,7 @@ function upsertEngagementEntry(progress, payload = {}) {
 
   let entry = progress.lessonEngagement.find((item) => item.lessonId === lessonId);
   if (!entry) {
-    entry = {
+    progress.lessonEngagement.push({
       lessonId,
       read: false,
       confidence: "",
@@ -205,8 +225,10 @@ function upsertEngagementEntry(progress, payload = {}) {
       challengeLastResult: "",
       lastTab: "",
       updatedAt: new Date(),
-    };
-    progress.lessonEngagement.push(entry);
+    });
+    // Mongoose stores a copy of the pushed object, so edit the stored entry,
+    // otherwise the first write for a new lesson is lost.
+    entry = progress.lessonEngagement[progress.lessonEngagement.length - 1];
   }
 
   if (payload.read !== undefined) {
@@ -248,7 +270,10 @@ async function upsertLessonEngagement(userId, courseId, payload = {}) {
       upsertEngagementEntry(course, payload);
       touchStreak(course);
     },
-    { createIfMissing: false },
+    // A quiz answer is a real result, so save it even if this is the
+    // learner's first progress write. Other engagement saves still don't
+    // create a learner doc on their own.
+    { createIfMissing: Boolean(payload.quizAttempts) },
   );
 }
 
