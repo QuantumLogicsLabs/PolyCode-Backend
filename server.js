@@ -297,15 +297,9 @@ app.use("/api/challenges", challengeRoutes);
 const chatRoutes = require("./src/modules/chat/chat.router");
 app.use("/api/chat", requireMongoConnection, chatRoutes);
 
-// Certificate uploads are optional — a missing dependency must not take down auth/API.
-try {
-  const certificateRoutes = require("./src/routes/Certificates.js");
-  app.use("/certificates", express.static(path.join(__dirname, "uploads/certificates")));
-  app.use("/api/certificates", certificateRoutes);
-  console.log("✅ Certificate routes enabled");
-} catch (error) {
-  console.warn("⚠️  Certificate routes disabled:", error.message);
-}
+const certificateRoutes = require("./src/modules/certificates/certificates.router");
+app.use("/api/certificates", requireMongoConnection, certificateRoutes);
+
 // Backward compatibility for older frontend builds requesting /languages directly
 app.get("/languages", (req, res) => {
   return res.redirect(307, "/api/documents/languages");
