@@ -52,23 +52,51 @@ function emptyCourseProgress(userId, courseId) {
   );
 }
 
+const MAX_SAVE_ATTEMPTS = 8;
+
+/**
+ * Saves that hit the same learner doc at once (lesson complete, engagement,
+ * code autosave, time tracking) fail with a VersionError, or with a duplicate
+ * key when two requests create the doc together. Both are safe to retry,
+ * because every attempt reloads the doc and reapplies the mutator to it.
+ */
+function isRetryableSaveError(error) {
+  return error?.name === "VersionError" || error?.code === 11000;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function withCourse(userId, courseId, mutator, { createIfMissing = true } = {}) {
   const id = assertCourseId(courseId);
-  let learner = null;
 
-  if (createIfMissing) {
-    learner = await getOrCreateLearnerDoc(userId);
-  } else {
-    learner = await findLearnerDoc(userId);
-    if (!learner) {
-      return emptyCourseProgress(userId, id);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      let learner = null;
+
+      if (createIfMissing) {
+        learner = await getOrCreateLearnerDoc(userId);
+      } else {
+        learner = await findLearnerDoc(userId);
+        if (!learner) {
+          return emptyCourseProgress(userId, id);
+        }
+      }
+
+      const course = ensureCourseEntry(learner, id);
+      await mutator(course, learner);
+      await saveLearnerDoc(learner);
+      return courseToProgress(course, userId);
+    } catch (error) {
+      if (!isRetryableSaveError(error) || attempt >= MAX_SAVE_ATTEMPTS) {
+        throw error;
+      }
+      // Growing, random backoff so the colliding requests spread out instead
+      // of retrying in lockstep.
+      await wait(Math.floor(Math.random() * 30 * 2 ** Math.min(attempt, 5)));
     }
   }
-
-  const course = ensureCourseEntry(learner, id);
-  await mutator(course, learner);
-  await saveLearnerDoc(learner);
-  return courseToProgress(course, userId);
 }
 
 /**
