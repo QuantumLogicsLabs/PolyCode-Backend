@@ -1,5 +1,6 @@
 const { assertCourseId } = require("../constants/courseIds");
 const dailyXpService = require("./dailyXpService");
+const reviewService = require("./reviewService");
 const {
   findLearnerDoc,
   getOrCreateLearnerDoc,
@@ -163,6 +164,16 @@ function countQuizCorrect(quizAttempts = {}) {
   return correct;
 }
 
+const MAX_QUESTION_HASH_LENGTH = 64;
+
+// Short fingerprint of the question the learner saw, so Review can tell when
+// the question at this position has since been edited or replaced.
+function normalizeQuestionHash(value) {
+  if (typeof value !== "string") return null;
+  const hash = value.trim();
+  return hash && hash.length <= MAX_QUESTION_HASH_LENGTH ? hash : null;
+}
+
 function normalizeQuizAttemptValue(value) {
   if (value == null) return null;
   if (typeof value === "number") {
@@ -170,6 +181,7 @@ function normalizeQuizAttemptValue(value) {
       selectedIndex: value,
       correct: null,
       answeredAt: null,
+      questionHash: null,
     };
   }
   if (typeof value === "object") {
@@ -186,6 +198,7 @@ function normalizeQuizAttemptValue(value) {
           ? null
           : Boolean(value.correct),
       answeredAt: value.answeredAt || null,
+      questionHash: normalizeQuestionHash(value.questionHash),
     };
   }
   return null;
@@ -213,7 +226,11 @@ function mergeQuizAttempts(existing = {}, incoming = {}) {
         normalized.correct !== null &&
         normalized.selectedIndex === prev.selectedIndex;
       if (fillsMissingResult) {
-        next[key] = { ...prev, correct: normalized.correct };
+        next[key] = {
+          ...prev,
+          correct: normalized.correct,
+          questionHash: prev.questionHash || normalized.questionHash,
+        };
       }
       continue;
     }
@@ -227,6 +244,7 @@ function mergeQuizAttempts(existing = {}, incoming = {}) {
           ? normalized.correct
           : prev?.correct ?? null,
       answeredAt: normalized.answeredAt || prev?.answeredAt || new Date(),
+      questionHash: normalized.questionHash || prev?.questionHash || null,
     };
   }
   return next;
@@ -290,8 +308,27 @@ function upsertEngagementEntry(progress, payload = {}) {
   return entry;
 }
 
+/**
+ * Queues wrong first answers for Review once the progress save has gone
+ * through. A failure here only logs: the answer itself is already saved, and
+ * the backfill script can add the item later.
+ */
+async function scheduleReviews(userId, progress, lessonIds) {
+  if (!progress?.courseId || lessonIds.length === 0) return;
+  try {
+    await reviewService.scheduleMissedQuizzes(
+      userId,
+      progress.courseId,
+      progress.lessonEngagement,
+      lessonIds,
+    );
+  } catch (error) {
+    console.warn("Review scheduling failed:", error.message);
+  }
+}
+
 async function upsertLessonEngagement(userId, courseId, payload = {}) {
-  return withCourse(
+  const progress = await withCourse(
     userId,
     courseId,
     async (course) => {
@@ -303,6 +340,10 @@ async function upsertLessonEngagement(userId, courseId, payload = {}) {
     // create a learner doc on their own.
     { createIfMissing: Boolean(payload.quizAttempts) },
   );
+  if (payload.quizAttempts) {
+    await scheduleReviews(userId, progress, [String(payload.lessonId).trim()]);
+  }
+  return progress;
 }
 
 async function completeLesson(userId, courseId, lesson) {
@@ -427,7 +468,7 @@ async function addTime(userId, courseId, minutes) {
 }
 
 async function mergeLocalProgress(userId, courseId, localPayload = {}) {
-  return withCourse(userId, courseId, async (course, learner) => {
+  const progress = await withCourse(userId, courseId, async (course, learner) => {
     const completedMap = localPayload.completedMap || {};
     const savedCodeMap = localPayload.savedCodeMap || {};
     const notesMap = localPayload.notesMap || {};
@@ -527,6 +568,11 @@ async function mergeLocalProgress(userId, courseId, localPayload = {}) {
     recalcTotalXp(course);
     touchStreak(course);
   });
+  const quizLessonIds = Object.entries(localPayload.engagementMap || {})
+    .filter(([, engagement]) => engagement?.quizAttempts)
+    .map(([lessonId]) => lessonId);
+  await scheduleReviews(userId, progress, quizLessonIds);
+  return progress;
 }
 
 function dayKey(date = new Date()) {
