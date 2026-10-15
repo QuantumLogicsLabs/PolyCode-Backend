@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // Simple ORM implementation
@@ -43,13 +44,13 @@ type Post struct {
 }
 
 type QueryBuilder struct {
-	table    string
-	where    []string
-	orderBy  string
-	limit    int
-	offset   int
-	joins    []string
-	params   []interface{}
+	table   string
+	where   []string
+	orderBy string
+	limit   int
+	offset  int
+	joins   []string
+	params  []interface{}
 }
 
 func main() {
@@ -59,7 +60,7 @@ func main() {
 	dbPath := "orm_test.db"
 	defer cleanupDatabase(dbPath)
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}
@@ -168,8 +169,8 @@ func (orm *ORM) Create(model Model) (int64, error) {
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		tableName, 
-		joinStrings(fields, ", "), 
+		tableName,
+		joinStrings(fields, ", "),
 		joinStrings(placeholders, ", "))
 
 	result, err := orm.db.Exec(query, values...)
@@ -223,7 +224,6 @@ func (orm *ORM) FindAll(model Model) ([]Model, error) {
 
 	var results []Model
 	for rows.Next() {
-		// Create new instance for each row
 		newModel := createNewModel(model)
 		if err := newModel.Scan(rows); err != nil {
 			return nil, fmt.Errorf("failed to scan %s: %w", tableName, err)
@@ -239,7 +239,6 @@ func (orm *ORM) Update(model Model, id int64) error {
 	fields := model.Fields()
 	values := model.Values()
 
-	// Build UPDATE statement
 	setClauses := make([]string, len(fields))
 	for i, field := range fields {
 		setClauses[i] = fmt.Sprintf("%s = ?", field)
@@ -248,7 +247,6 @@ func (orm *ORM) Update(model Model, id int64) error {
 	query := fmt.Sprintf("UPDATE %s SET %s, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
 		tableName, joinStrings(setClauses, ", "))
 
-	// Add ID to values for WHERE clause
 	updateValues := append(values, id)
 
 	result, err := orm.db.Exec(query, updateValues...)
@@ -300,22 +298,18 @@ func (orm *ORM) Find(query *QueryBuilder, model Model) ([]Model, error) {
 	sql := fmt.Sprintf("SELECT id, %s, created_at, updated_at FROM %s",
 		joinStrings(fields, ", "), tableName)
 
-	// Add joins
 	for _, join := range query.joins {
 		sql += " " + join
 	}
 
-	// Add where conditions
 	if len(query.where) > 0 {
 		sql += " WHERE " + joinStrings(query.where, " AND ")
 	}
 
-	// Add order by
 	if query.orderBy != "" {
 		sql += " ORDER BY " + query.orderBy
 	}
 
-	// Add limit and offset
 	if query.limit > 0 {
 		sql += fmt.Sprintf(" LIMIT %d", query.limit)
 		if query.offset > 0 {
@@ -371,7 +365,6 @@ func (qb *QueryBuilder) Join(join string) *QueryBuilder {
 func demonstrateCRUD(orm *ORM) {
 	fmt.Println("\n--- CRUD Operations ---")
 
-	// CREATE
 	user := &User{
 		Username:  "john_doe",
 		Email:     "john@example.com",
@@ -387,18 +380,16 @@ func demonstrateCRUD(orm *ORM) {
 	}
 	fmt.Printf("✓ Created user with ID: %d\n", id)
 
-	// READ
 	retrievedUser, err := orm.FindByID(&User{}, id)
 	if err != nil {
 		log.Printf("Failed to find user: %v", err)
 		return
 	}
-	
+
 	if u, ok := retrievedUser.(*User); ok {
 		fmt.Printf("✓ Retrieved user: %s (%s)\n", u.Username, u.Email)
 	}
 
-	// UPDATE
 	user.FirstName = "John Updated"
 	if err := orm.Update(user, id); err != nil {
 		log.Printf("Failed to update user: %v", err)
@@ -406,7 +397,6 @@ func demonstrateCRUD(orm *ORM) {
 	}
 	fmt.Printf("✓ Updated user ID: %d\n", id)
 
-	// Create posts for the user
 	posts := []*Post{
 		{UserID: int(id), Title: "First Post", Content: "This is my first post", Status: "published"},
 		{UserID: int(id), Title: "Second Post", Content: "This is my second post", Status: "draft"},
@@ -421,14 +411,12 @@ func demonstrateCRUD(orm *ORM) {
 		fmt.Printf("✓ Created post with ID: %d\n", postID)
 	}
 
-	// DELETE (we'll keep the data for other demos)
 	fmt.Println("✓ CRUD operations completed")
 }
 
 func demonstrateQueries(orm *ORM) {
 	fmt.Println("\n--- Query Operations ---")
 
-	// Find all users
 	users, err := orm.FindAll(&User{})
 	if err != nil {
 		log.Printf("Failed to find all users: %v", err)
@@ -436,7 +424,6 @@ func demonstrateQueries(orm *ORM) {
 	}
 	fmt.Printf("Found %d users\n", len(users))
 
-	// Custom query with conditions
 	query := orm.NewQuery().Where("username LIKE ?", "%john%").OrderBy("created_at DESC")
 	filteredUsers, err := orm.Find(query, &User{})
 	if err != nil {
@@ -445,7 +432,6 @@ func demonstrateQueries(orm *ORM) {
 	}
 	fmt.Printf("Found %d users matching 'john'\n", len(filteredUsers))
 
-	// Query posts
 	posts, err := orm.FindAll(&Post{})
 	if err != nil {
 		log.Printf("Failed to find all posts: %v", err)
@@ -453,7 +439,6 @@ func demonstrateQueries(orm *ORM) {
 	}
 	fmt.Printf("Found %d posts\n", len(posts))
 
-	// Query published posts
 	publishedQuery := orm.NewQuery().Where("status = ?", "published").OrderBy("created_at DESC")
 	publishedPosts, err := orm.Find(publishedQuery, &Post{})
 	if err != nil {
@@ -466,7 +451,6 @@ func demonstrateQueries(orm *ORM) {
 func demonstrateRelationships(orm *ORM) {
 	fmt.Println("\n--- Relationship Operations ---")
 
-	// Get user with their posts
 	users, err := orm.FindAll(&User{})
 	if err != nil {
 		log.Printf("Failed to get users: %v", err)
@@ -477,7 +461,6 @@ func demonstrateRelationships(orm *ORM) {
 		user := userModel.(*User)
 		fmt.Printf("User: %s\n", user.Username)
 
-		// Get user's posts
 		postQuery := orm.NewQuery().Where("user_id = ?", user.ID).OrderBy("created_at DESC")
 		userPosts, err := orm.Find(postQuery, &Post{})
 		if err != nil {
@@ -496,23 +479,15 @@ func demonstrateRelationships(orm *ORM) {
 func demonstrateAdvancedOperations(orm *ORM) {
 	fmt.Println("\n--- Advanced Operations ---")
 
-	// Count operations
 	demonstrateCountOperations(orm)
-
-	// Pagination
 	demonstratePagination(orm)
-
-	// Aggregation
 	demonstrateAggregation(orm)
-
-	// Transactions
 	demonstrateTransactions(orm)
 }
 
 func demonstrateCountOperations(orm *ORM) {
 	fmt.Println("\n--- Count Operations ---")
 
-	// Count users
 	var userCount int
 	err := orm.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
 	if err != nil {
@@ -521,7 +496,6 @@ func demonstrateCountOperations(orm *ORM) {
 	}
 	fmt.Printf("Total users: %d\n", userCount)
 
-	// Count posts by status
 	statuses := []string{"published", "draft"}
 	for _, status := range statuses {
 		var count int
@@ -559,7 +533,7 @@ func demonstratePagination(orm *ORM) {
 		}
 
 		page++
-		if page > 3 { // Limit pagination demo
+		if page > 3 {
 			break
 		}
 	}
@@ -568,7 +542,6 @@ func demonstratePagination(orm *ORM) {
 func demonstrateAggregation(orm *ORM) {
 	fmt.Println("\n--- Aggregation Operations ---")
 
-	// Posts per user
 	query := `
 	SELECT u.username, COUNT(p.id) as post_count
 	FROM users u
@@ -604,7 +577,6 @@ func demonstrateTransactions(orm *ORM) {
 		return
 	}
 
-	// Create user and posts in transaction
 	user := &User{
 		Username:  "transaction_user",
 		Email:     "tx@example.com",
@@ -613,7 +585,6 @@ func demonstrateTransactions(orm *ORM) {
 		Bio:       "Created in a transaction",
 	}
 
-	// Insert user
 	userQuery := `INSERT INTO users (username, email, first_name, last_name, bio) VALUES (?, ?, ?, ?, ?)`
 	result, err := tx.Exec(userQuery, user.Username, user.Email, user.FirstName, user.LastName, user.Bio)
 	if err != nil {
@@ -629,7 +600,6 @@ func demonstrateTransactions(orm *ORM) {
 		return
 	}
 
-	// Insert posts for this user
 	postQuery := `INSERT INTO posts (user_id, title, content, status) VALUES (?, ?, ?, ?)`
 	posts := []struct {
 		title   string
@@ -649,7 +619,6 @@ func demonstrateTransactions(orm *ORM) {
 		}
 	}
 
-	// Commit transaction
 	if err := tx.Commit(); err != nil {
 		log.Printf("Failed to commit transaction: %v", err)
 		return
@@ -657,8 +626,9 @@ func demonstrateTransactions(orm *ORM) {
 
 	fmt.Printf("✓ Transaction completed successfully (User ID: %d)\n", userID)
 
-	// Verify the transaction
-	userPosts, err := orm.NewQuery().Where("user_id = ?", userID).Find(&Post{})
+	// Fixed: Use orm.Find with the query builder
+	query := orm.NewQuery().Where("user_id = ?", userID)
+	userPosts, err := orm.Find(query, &Post{})
 	if err != nil {
 		log.Printf("Failed to verify transaction: %v", err)
 		return
@@ -667,12 +637,11 @@ func demonstrateTransactions(orm *ORM) {
 	fmt.Printf("✓ Verified: User has %d posts\n", len(userPosts))
 }
 
-// Helper functions
 func joinStrings(strs []string, sep string) string {
 	if len(strs) == 0 {
 		return ""
 	}
-	
+
 	result := strs[0]
 	for i := 1; i < len(strs); i++ {
 		result += sep + strs[i]

@@ -89,20 +89,20 @@ func (l *StructuredLogger) log(level LogLevel, message string, fields map[string
 	if level < l.level {
 		return
 	}
-	
+
 	entry := LogEntry{
 		Timestamp: time.Now(),
 		Level:     level.String(),
 		Message:   message,
 		Fields:    fields,
 	}
-	
+
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
 		return
 	}
-	
+
 	fmt.Fprintln(l.output, string(jsonData))
 }
 
@@ -148,60 +148,7 @@ func MergeFields(fields ...map[string]interface{}) map[string]interface{} {
 	return merged
 }
 
-// Logger with context support
-type ContextualLogger struct {
-	*StructuredLogger
-	context map[string]interface{}
-}
-
-func NewContextualLogger() *ContextualLogger {
-	return &ContextualLogger{
-		StructuredLogger: NewStructuredLogger(),
-		context:         make(map[string]interface{}),
-	}
-}
-
-func (l *ContextualLogger) WithContext(fields map[string]interface{}) *ContextualLogger {
-	newContext := make(map[string]interface{})
-	for k, v := range l.context {
-		newContext[k] = v
-	}
-	for k, v := range fields {
-		newContext[k] = v
-	}
-	
-	return &ContextualLogger{
-		StructuredLogger: l.StructuredLogger,
-		context:         newContext,
-	}
-}
-
-func (l *ContextualLogger) Debug(message string, fields map[string]interface{}) {
-	merged := MergeFields(l.context, fields)
-	l.StructuredLogger.Debug(message, merged)
-}
-
-func (l *ContextualLogger) Info(message string, fields map[string]interface{}) {
-	merged := MergeFields(l.context, fields)
-	l.StructuredLogger.Info(message, merged)
-}
-
-func (l *ContextualLogger) Warn(message string, fields map[string]interface{}) {
-	merged := MergeFields(l.context, fields)
-	l.StructuredLogger.Warn(message, merged)
-}
-
-func (l *ContextualLogger) Error(message string, fields map[string]interface{}) {
-	merged := MergeFields(l.context, fields)
-	l.StructuredLogger.Error(message, merged)
-}
-
-func (l *ContextualLogger) Fatal(message string, fields map[string]interface{}) {
-	merged := MergeFields(l.context, fields)
-	l.StructuredLogger.Fatal(message, merged)
-}
-
-// Logger with levels and filtering
+// LevelLogger with filters
 type LevelLogger struct {
 	*StructuredLogger
 	filters []func(LogEntry) bool
@@ -210,7 +157,7 @@ type LevelLogger struct {
 func NewLevelLogger(level LogLevel) *LevelLogger {
 	return &LevelLogger{
 		StructuredLogger: NewStructuredLogger(),
-		filters:         []func(LogEntry) bool{},
+		filters:          []func(LogEntry) bool{},
 	}
 }
 
@@ -231,74 +178,34 @@ func (l *LevelLogger) log(level LogLevel, message string, fields map[string]inte
 	if level < l.level {
 		return
 	}
-	
+
 	entry := LogEntry{
 		Timestamp: time.Now(),
 		Level:     level.String(),
 		Message:   message,
 		Fields:    fields,
 	}
-	
+
 	if !l.shouldLog(entry) {
 		return
 	}
-	
+
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
 		return
 	}
-	
+
 	fmt.Fprintln(l.output, string(jsonData))
 }
 
-// Example filters
-func FilterByLevel(minLevel LogLevel) func(LogEntry) bool {
-	return func(entry LogEntry) bool {
-		switch entry.Level {
-		case "DEBUG":
-			return minLevel <= LevelDebug
-		case "INFO":
-			return minLevel <= LevelInfo
-		case "WARN":
-			return minLevel <= LevelWarn
-		case "ERROR":
-			return minLevel <= LevelError
-		case "FATAL":
-			return minLevel <= LevelFatal
-		default:
-			return false
-		}
-	}
-}
+func main() {
+	fmt.Println("=== Structured Logger Demo ===")
+	logger := NewStructuredLogger()
+	logger.SetLevel(LevelDebug)
 
-func FilterByField(key string, value interface{}) func(LogEntry) bool {
-	return func(entry LogEntry) bool {
-		if entry.Fields == nil {
-			return false
-		}
-		fieldValue, exists := entry.Fields[key]
-		return exists && fieldValue == value
-	}
-}
-
-func FilterByMessageContains(substring string) func(LogEntry) bool {
-	return func(entry LogEntry) bool {
-		return contains(entry.Message, substring)
-	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && 
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		 containsSubstring(s, substr)))
-}
-
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	logger.Debug("Debugging database connection", map[string]interface{}{"host": "localhost", "port": 5432})
+	logger.Info("User logged in successfully", MergeFields(StringField("user", "admin"), IntField("attempts", 1)))
+	logger.Warn("Disk space running low", FloatField("free_percentage", 12.5))
+	logger.Error("Query execution timed out", map[string]interface{}{"query_id": 1042})
 }

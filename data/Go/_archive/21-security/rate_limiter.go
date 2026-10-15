@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -14,7 +15,7 @@ type RateLimiter interface {
 }
 
 type RateLimitStats struct {
-	CurrentTokens int       `json:"current_tokens"`
+	CurrentTokens  int       `json:"current_tokens"`
 	LastRefill     time.Time `json:"last_refill"`
 	TotalRequests  int       `json:"total_requests"`
 	DeniedRequests int       `json:"denied_requests"`
@@ -51,7 +52,7 @@ func (t *TokenBucketLimiter) Allow(identifier string) bool {
 func (t *TokenBucketLimiter) AllowN(identifier string, n int) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	bucket, exists := t.buckets[identifier]
 	if !exists {
 		bucket = &TokenBucket{
@@ -62,17 +63,15 @@ func (t *TokenBucketLimiter) AllowN(identifier string, n int) bool {
 		}
 		t.buckets[identifier] = bucket
 	}
-	
-	// Refill tokens
+
 	t.refill(bucket)
-	
-	// Check if enough tokens
+
 	if bucket.tokens >= n {
 		bucket.tokens -= n
 		bucket.stats.TotalRequests++
 		return true
 	}
-	
+
 	bucket.stats.DeniedRequests++
 	return false
 }
@@ -80,18 +79,16 @@ func (t *TokenBucketLimiter) AllowN(identifier string, n int) bool {
 func (t *TokenBucketLimiter) Reset(identifier string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
 	delete(t.buckets, identifier)
 }
 
 func (t *TokenBucketLimiter) GetStats(identifier string) RateLimitStats {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	if bucket, exists := t.buckets[identifier]; exists {
 		return bucket.stats
 	}
-	
 	return RateLimitStats{}
 }
 
@@ -99,7 +96,7 @@ func (t *TokenBucketLimiter) refill(bucket *TokenBucket) {
 	now := time.Now()
 	elapsed := now.Sub(bucket.lastRefill)
 	tokensToAdd := int(elapsed.Seconds() * float64(t.refillRate))
-	
+
 	if tokensToAdd > 0 {
 		bucket.tokens += tokensToAdd
 		if bucket.tokens > bucket.capacity {
@@ -139,7 +136,7 @@ func (s *SlidingWindowLimiter) Allow(identifier string) bool {
 func (s *SlidingWindowLimiter) AllowN(identifier string, n int) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	window, exists := s.windows[identifier]
 	if !exists {
 		window = &SlidingWindow{
@@ -149,20 +146,17 @@ func (s *SlidingWindowLimiter) AllowN(identifier string, n int) bool {
 		}
 		s.windows[identifier] = window
 	}
-	
+
 	now := time.Now()
-	
-	// Remove old requests outside the window
 	cutoff := now.Add(-s.window)
-	validRequests := []time.Time{}
+	var validRequests []time.Time
 	for _, req := range window.requests {
 		if req.After(cutoff) {
 			validRequests = append(validRequests, req)
 		}
 	}
 	window.requests = validRequests
-	
-	// Check if adding n requests would exceed limit
+
 	if len(window.requests)+n <= window.limit {
 		for i := 0; i < n; i++ {
 			window.requests = append(window.requests, now)
@@ -170,7 +164,7 @@ func (s *SlidingWindowLimiter) AllowN(identifier string, n int) bool {
 		window.stats.TotalRequests++
 		return true
 	}
-	
+
 	window.stats.DeniedRequests++
 	return false
 }
@@ -178,18 +172,16 @@ func (s *SlidingWindowLimiter) AllowN(identifier string, n int) bool {
 func (s *SlidingWindowLimiter) Reset(identifier string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
 	delete(s.windows, identifier)
 }
 
 func (s *SlidingWindowLimiter) GetStats(identifier string) RateLimitStats {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	if window, exists := s.windows[identifier]; exists {
 		return window.stats
 	}
-	
 	return RateLimitStats{}
 }
 
@@ -202,11 +194,11 @@ type FixedWindowLimiter struct {
 }
 
 type FixedWindowCounter struct {
-	count      int
-	window     time.Duration
-	limit      int
+	count       int
+	window      time.Duration
+	limit       int
 	windowStart time.Time
-	stats      RateLimitStats
+	stats       RateLimitStats
 }
 
 func NewFixedWindowLimiter(window time.Duration, limit int) *FixedWindowLimiter {
@@ -224,7 +216,7 @@ func (f *FixedWindowLimiter) Allow(identifier string) bool {
 func (f *FixedWindowLimiter) AllowN(identifier string, n int) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	counter, exists := f.counters[identifier]
 	if !exists {
 		counter = &FixedWindowCounter{
@@ -235,22 +227,19 @@ func (f *FixedWindowLimiter) AllowN(identifier string, n int) bool {
 		}
 		f.counters[identifier] = counter
 	}
-	
+
 	now := time.Now()
-	
-	// Reset if window has expired
 	if now.Sub(counter.windowStart) >= counter.window {
 		counter.count = 0
 		counter.windowStart = now
 	}
-	
-	// Check if adding n requests would exceed limit
+
 	if counter.count+n <= counter.limit {
 		counter.count += n
 		counter.stats.TotalRequests++
 		return true
 	}
-	
+
 	counter.stats.DeniedRequests++
 	return false
 }
@@ -258,165 +247,39 @@ func (f *FixedWindowLimiter) AllowN(identifier string, n int) bool {
 func (f *FixedWindowLimiter) Reset(identifier string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
 	delete(f.counters, identifier)
 }
 
 func (f *FixedWindowLimiter) GetStats(identifier string) RateLimitStats {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if counter, exists := f.counters[identifier]; exists {
 		return counter.stats
 	}
-	
 	return RateLimitStats{}
-}
-
-// DistributedRateLimiter for distributed systems
-type DistributedRateLimiter struct {
-	storage RateLimitStorage
-	limiter RateLimiter
-}
-
-type RateLimitStorage interface {
-	Get(key string) (interface{}, error)
-	Set(key string, value interface{}, ttl time.Duration) error
-	Delete(key string) error
-	Increment(key string) (int, error)
-	Expire(key string, ttl time.Duration) error
-}
-
-func NewDistributedRateLimiter(storage RateLimitStorage, limiter RateLimiter) *DistributedRateLimiter {
-	return &DistributedRateLimiter{
-		storage: storage,
-		limiter: limiter,
-	}
-}
-
-func (d *DistributedRateLimiter) Allow(identifier string) bool {
-	return d.limiter.Allow(identifier)
-}
-
-func (d *DistributedRateLimiter) AllowN(identifier string, n int) bool {
-	return d.limiter.AllowN(identifier, n)
-}
-
-func (d *DistributedRateLimiter) Reset(identifier string) {
-	d.limiter.Reset(identifier)
-}
-
-func (d *DistributedRateLimiter) GetStats(identifier string) RateLimitStats {
-	return d.limiter.GetStats(identifier)
-}
-
-// AdaptiveRateLimiter adjusts limits based on system load
-type AdaptiveRateLimiter struct {
-	baseLimiter RateLimiter
-	loadMonitor LoadMonitor
-	adjuster    RateAdjuster
-}
-
-type LoadMonitor interface {
-	GetCurrentLoad() float64 // 0.0 to 1.0
-}
-
-type RateAdjuster interface {
-	Adjust(baseLimit int, load float64) int
-}
-
-func NewAdaptiveRateLimiter(baseLimiter RateLimiter, monitor LoadMonitor, adjuster RateAdjuster) *AdaptiveRateLimiter {
-	return &AdaptiveRateLimiter{
-		baseLimiter: baseLimiter,
-		loadMonitor: monitor,
-		adjuster:    adjuster,
-	}
-}
-
-func (a *AdaptiveRateLimiter) Allow(identifier string) bool {
-	return a.baseLimiter.Allow(identifier)
-}
-
-func (a *AdaptiveRateLimiter) AllowN(identifier string, n int) bool {
-	return a.baseLimiter.AllowN(identifier, n)
-}
-
-func (a *AdaptiveRateLimiter) Reset(identifier string) {
-	a.baseLimiter.Reset(identifier)
-}
-
-func (a *AdaptiveRateLimiter) GetStats(identifier string) RateLimitStats {
-	return a.baseLimiter.GetStats(identifier)
-}
-
-// Simple load monitor implementation
-type SimpleLoadMonitor struct {
-	currentLoad float64
-}
-
-func NewSimpleLoadMonitor() *SimpleLoadMonitor {
-	return &SimpleLoadMonitor{currentLoad: 0.5}
-}
-
-func (s *SimpleLoadMonitor) GetCurrentLoad() float64 {
-	return s.currentLoad
-}
-
-func (s *SimpleLoadMonitor) SetLoad(load float64) {
-	s.currentLoad = load
-}
-
-// Simple rate adjuster implementation
-type SimpleRateAdjuster struct{}
-
-func NewSimpleRateAdjuster() *SimpleRateAdjuster {
-	return &SimpleRateAdjuster{}
-}
-
-func (s *SimpleRateAdjuster) Adjust(baseLimit int, load float64) int {
-	if load > 0.8 {
-		// Reduce limit by 50% under high load
-		return baseLimit / 2
-	} else if load > 0.6 {
-		// Reduce limit by 25% under medium load
-		return baseLimit * 3 / 4
-	} else if load < 0.3 {
-		// Increase limit by 25% under low load
-		return baseLimit * 5 / 4
-	}
-	
-	// No adjustment under normal load
-	return baseLimit
 }
 
 // MultiTierRateLimiter for different user tiers
 type MultiTierRateLimiter struct {
-	limiter  RateLimiter
-	tierLimits map[string]int // tier -> limit
+	limiter    RateLimiter
+	tierLimits map[string]int
 }
 
 func NewMultiTierRateLimiter(limiter RateLimiter) *MultiTierRateLimiter {
 	return &MultiTierRateLimiter{
 		limiter: limiter,
 		tierLimits: map[string]int{
-			"free":    100,
-			"basic":   1000,
-			"premium": 10000,
+			"free":       100,
+			"basic":      1000,
+			"premium":    10000,
 			"enterprise": 100000,
 		},
 	}
 }
 
 func (m *MultiTierRateLimiter) Allow(identifier string, tier string) bool {
-	limit, exists := m.tierLimits[tier]
-	if !exists {
-		limit = m.tierLimits["free"] // Default to free tier
-	}
-	
-	// Create a composite identifier
 	compositeID := fmt.Sprintf("%s:%s", tier, identifier)
-	
-	// This is simplified - in practice, you'd need to adjust the underlying limiter
 	return m.limiter.Allow(compositeID)
 }
 
@@ -429,4 +292,26 @@ func (m *MultiTierRateLimiter) GetTierLimit(tier string) int {
 		return limit
 	}
 	return m.tierLimits["free"]
+}
+
+func main() {
+	fmt.Println("=== Rate Limiting Demo ===")
+
+	fmt.Println("\n-- Token Bucket Limiter (Capacity: 3, Refill: 1/sec) --")
+	tbl := NewTokenBucketLimiter(3, 1)
+	for i := 1; i <= 5; i++ {
+		fmt.Printf("Request %d: allowed=%t\n", i, tbl.Allow("client-A"))
+	}
+
+	fmt.Println("\n-- Fixed Window Limiter (Limit: 2 per 1s) --")
+	fwl := NewFixedWindowLimiter(1*time.Second, 2)
+	fmt.Printf("Req 1: allowed=%t\n", fwl.Allow("client-B"))
+	fmt.Printf("Req 2: allowed=%t\n", fwl.Allow("client-B"))
+	fmt.Printf("Req 3: allowed=%t (expected false)\n", fwl.Allow("client-B"))
+
+	fmt.Println("\n-- Sliding Window Limiter (Limit: 2 per 1s) --")
+	swl := NewSlidingWindowLimiter(1*time.Second, 2)
+	fmt.Printf("Req 1: allowed=%t\n", swl.Allow("client-C"))
+	fmt.Printf("Req 2: allowed=%t\n", swl.Allow("client-C"))
+	fmt.Printf("Req 3: allowed=%t (expected false)\n", swl.Allow("client-C"))
 }

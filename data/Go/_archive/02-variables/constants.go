@@ -1,10 +1,5 @@
 package main
 
-import "fmt"
-
-func main() {
-	fmt.Println("=== Constants in Go ===")
-	
 	// Constant declarations
 	const PI = 3.14159
 	const GREETING = "Hello, Go!"

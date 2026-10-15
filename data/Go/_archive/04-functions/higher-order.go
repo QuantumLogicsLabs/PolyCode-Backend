@@ -7,61 +7,61 @@ import (
 
 func main() {
 	fmt.Println("=== Higher-Order Functions ===")
-	
+
 	// Function as parameter
 	fmt.Println("\n--- Function as Parameter ---")
 	numbers := []int{1, 2, 3, 4, 5}
-	
+
 	doubled := mapNumbers(numbers, double)
 	fmt.Printf("Doubled: %v\n", doubled)
-	
+
 	squared := mapNumbers(numbers, square)
 	fmt.Printf("Squared: %v\n", squared)
-	
+
 	// Function as return value
 	fmt.Println("\n--- Function as Return Value ---")
 	add5 := getOperation("add", 5)
 	multiply3 := getOperation("multiply", 3)
-	
+
 	fmt.Printf("Add 5 to 10: %d\n", add5(10))
 	fmt.Printf("Multiply 10 by 3: %d\n", multiply3(10))
-	
+
 	// Filter function
 	fmt.Println("\n--- Filter Function ---")
 	even := filter(numbers, isEven)
 	fmt.Printf("Even numbers: %v\n", even)
-	
+
 	odd := filter(numbers, isOdd)
 	fmt.Printf("Odd numbers: %v\n", odd)
-	
+
 	// Reduce function
 	fmt.Println("\n--- Reduce Function ---")
 	sum := reduce(numbers, 0, add)
 	fmt.Printf("Sum: %d\n", sum)
-	
+
 	product := reduce(numbers, 1, multiply)
 	fmt.Printf("Product: %d\n", product)
-	
+
 	// String operations
 	fmt.Println("\n--- String Operations ---")
 	words := []string{"hello", "world", "go", "programming"}
-	
+
 	upper := mapStrings(words, strings.ToUpper)
 	fmt.Printf("Uppercase: %v\n", upper)
-	
+
 	longWords := filterStrings(words, isLongWord)
 	fmt.Printf("Long words: %v\n", longWords)
-	
+
 	// Composition
 	fmt.Println("\n--- Function Composition ---")
 	addThenDouble := compose(add5, double)
 	fmt.Printf("Add 5 then double 10: %d\n", addThenDouble(10))
-	
+
 	// Currying
 	fmt.Println("\n--- Currying ---")
-	add := curryAdd(5)
-	fmt.Printf("5 + 3 = %d\n", add(3))
-	
+	addFn := curryAdd(5)
+	fmt.Printf("5 + 3 = %d\n", addFn(3))
+
 	// Pipeline
 	fmt.Println("\n--- Function Pipeline ---")
 	result := pipeline(
@@ -71,29 +71,33 @@ func main() {
 		double,
 	)
 	fmt.Printf("Pipeline result: %d\n", result)
-	
+
 	// Predicate functions
 	fmt.Println("\n--- Predicate Functions ---")
 	positive := filter(numbers, isPositive)
 	fmt.Printf("Positive numbers: %v\n", positive)
-	
+
 	greaterThan3 := filter(numbers, createGreaterThanPredicate(3))
 	fmt.Printf("Numbers > 3: %v\n", greaterThan3)
-	
+
 	// Custom higher-order functions
 	fmt.Println("\n--- Custom Higher-Order Functions ---")
-	
+
 	// Find function
 	found := find(numbers, isEven)
 	fmt.Printf("First even number: %d\n", found)
-	
+
 	// Every function
 	allEven := every(numbers, isEven)
 	fmt.Printf("All numbers are even: %t\n", allEven)
-	
+
 	// Some function
 	someEven := some(numbers, isEven)
 	fmt.Printf("Some numbers are even: %t\n", someEven)
+
+	// Run Advanced & Generic Demonstrations
+	demonstrateAdvancedPatterns()
+	demonstrateGenericFunctions()
 }
 
 // Basic functions to be used as parameters
@@ -264,12 +268,12 @@ func some(nums []int, predicate func(int) bool) bool {
 // Memoization factory
 func memoize(fn func(int) int) func(int) int {
 	cache := make(map[int]int)
-	
+
 	return func(x int) int {
 		if result, exists := cache[x]; exists {
 			return result
 		}
-		
+
 		result := fn(x)
 		cache[x] = result
 		return result
@@ -279,7 +283,7 @@ func memoize(fn func(int) int) func(int) int {
 // Retry function
 func retry(attempts int, fn func() error) error {
 	var err error
-	
+
 	for i := 0; i < attempts; i++ {
 		err = fn()
 		if err == nil {
@@ -287,15 +291,13 @@ func retry(attempts int, fn func() error) error {
 		}
 		fmt.Printf("Attempt %d failed, retrying...\n", i+1)
 	}
-	
+
 	return fmt.Errorf("failed after %d attempts: %w", attempts, err)
 }
 
 // Timeout simulation
 func withTimeout(fn func() string, timeout int) func() string {
 	return func() string {
-		// In a real scenario, you'd use goroutines and channels
-		// This is a simplified simulation
 		fmt.Printf("Function will timeout after %d seconds\n", timeout)
 		return fn()
 	}
@@ -314,24 +316,25 @@ func withLogging(fn func(int) int) func(int) int {
 // Demonstrate advanced patterns
 func demonstrateAdvancedPatterns() {
 	fmt.Println("\n--- Advanced Higher-Order Patterns ---")
-	
+
 	// Memoization
-	slowFunc := func(n int) int {
+	var slowFunc func(int) int
+	slowFunc = func(n int) int {
 		fmt.Printf("Computing fibonacci(%d)...\n", n)
 		if n <= 1 {
 			return n
 		}
 		return slowFunc(n-1) + slowFunc(n-2)
 	}
-	
+
 	memFunc := memoize(slowFunc)
 	fmt.Printf("Memoized result: %d\n", memFunc(5))
 	fmt.Printf("Memoized result (cached): %d\n", memFunc(5))
-	
+
 	// Decorator
 	loggedDouble := withLogging(double)
 	fmt.Printf("Logged result: %d\n", loggedDouble(10))
-	
+
 	// Retry
 	attempt := 0
 	failingFunc := func() error {
@@ -341,7 +344,7 @@ func demonstrateAdvancedPatterns() {
 		}
 		return nil
 	}
-	
+
 	err := retry(5, failingFunc)
 	if err != nil {
 		fmt.Printf("Final error: %v\n", err)
@@ -376,21 +379,23 @@ func genericFilter[T any](items []T, predicate func(T) bool) []T {
 // Demonstrate generic functions
 func demonstrateGenericFunctions() {
 	fmt.Println("\n--- Generic Higher-Order Functions ---")
-	
+
 	// Generic map
 	ints := []int{1, 2, 3, 4, 5}
-	strings := []string{"a", "bb", "ccc"}
-	
+	stringsList := []string{"a", "bb", "ccc"}
+
 	intLengths := genericMap(ints, func(x int) string {
 		return fmt.Sprintf("num-%d", x)
 	})
 	fmt.Printf("Int to strings: %v\n", intLengths)
-	
-	strLengths := genericMap(strings, len)
+
+	strLengths := genericMap(stringsList, func(s string) int {
+		return len(s)
+	})
 	fmt.Printf("String lengths: %v\n", strLengths)
-	
+
 	// Generic filter
-	longStrings := genericFilter(strings, func(s string) bool {
+	longStrings := genericFilter(stringsList, func(s string) bool {
 		return len(s) > 1
 	})
 	fmt.Printf("Long strings: %v\n", longStrings)

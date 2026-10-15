@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"sort"
 )
 
@@ -58,9 +57,9 @@ func (bt *BankTransferPayment) Pay(amount float64) string {
 
 // Context
 type ShoppingCart struct {
-	items      []string
-	prices     []float64
-	payment    PaymentStrategy
+	items   []string
+	prices  []float64
+	payment PaymentStrategy
 }
 
 func NewShoppingCart() *ShoppingCart {
@@ -84,14 +83,14 @@ func (sc *ShoppingCart) Checkout() string {
 	for _, price := range sc.prices {
 		total += price
 	}
-	
+
 	fmt.Printf("Items: %v\n", sc.items)
 	fmt.Printf("Total: $%.2f\n", total)
-	
+
 	if sc.payment == nil {
 		return "No payment method selected"
 	}
-	
+
 	return sc.payment.Pay(total)
 }
 

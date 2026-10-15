@@ -2,20 +2,19 @@ package main
 
 import (
 	"fmt"
-	"math"
 )
 
 func main() {
 	fmt.Println("=== Multiple Return Values ===")
-	
+
 	// Function with two return values
 	sum, diff := calculate(10, 3)
 	fmt.Printf("Sum: %d, Difference: %d\n", sum, diff)
-	
+
 	// Function with named return values
 	area, perimeter := rectangle(5, 3)
 	fmt.Printf("Area: %.1f, Perimeter: %.1f\n", area, perimeter)
-	
+
 	// Function returning error
 	result, err := safeDivide(10, 2)
 	if err != nil {
@@ -23,14 +22,14 @@ func main() {
 	} else {
 		fmt.Printf("Result: %.2f\n", result)
 	}
-	
+
 	result, err = safeDivide(10, 0)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
 		fmt.Printf("Result: %.2f\n", result)
 	}
-	
+
 	// Function returning three values
 	quotient, remainder, err := divideWithRemainder(17, 5)
 	if err != nil {
@@ -38,16 +37,16 @@ func main() {
 	} else {
 		fmt.Printf("Quotient: %d, Remainder: %d\n", quotient, remainder)
 	}
-	
+
 	// Ignoring return values
 	onlySum, _ := calculate(20, 8)
 	fmt.Printf("Only sum: %d\n", onlySum)
-	
+
 	// Function returning a function
 	adder := createAdder(10)
 	result2 := adder(5)
 	fmt.Printf("Adder result: %d\n", result2)
-	
+
 	// Function returning multiple types
 	name, age, isActive := getUserInfo()
 	fmt.Printf("User: %s, Age: %d, Active: %t\n", name, age, isActive)
@@ -100,18 +99,18 @@ func getUserInfo() (string, int, bool) {
 // Advanced example: function that returns validation results
 func validateInput(username, password string) (bool, string, []string) {
 	var errors []string
-	
+
 	if len(username) < 3 {
 		errors = append(errors, "username too short")
 	}
-	
+
 	if len(password) < 8 {
 		errors = append(errors, "password too short")
 	}
-	
+
 	isValid := len(errors) == 0
 	message := "validation completed"
-	
+
 	return isValid, message, errors
 }
 
@@ -126,11 +125,11 @@ func stats(numbers []float64) (min, max, avg float64) {
 	if len(numbers) == 0 {
 		return 0, 0, 0
 	}
-	
+
 	min = numbers[0]
 	max = numbers[0]
 	sum := 0.0
-	
+
 	for _, num := range numbers {
 		if num < min {
 			min = num
@@ -140,7 +139,7 @@ func stats(numbers []float64) (min, max, avg float64) {
 		}
 		sum += num
 	}
-	
+
 	avg = sum / float64(len(numbers))
 	return
 }
@@ -148,7 +147,7 @@ func stats(numbers []float64) (min, max, avg float64) {
 // Function demonstrating multiple returns with different scenarios
 func analyzeString(s string) (length int, wordCount int, hasDigits bool, hasSpecial bool) {
 	length = len(s)
-	
+
 	// Count words
 	if len(s) > 0 {
 		wordCount = 1
@@ -158,7 +157,7 @@ func analyzeString(s string) (length int, wordCount int, hasDigits bool, hasSpec
 			}
 		}
 	}
-	
+
 	// Check for digits and special characters
 	for _, char := range s {
 		if char >= '0' && char <= '9' {
@@ -168,30 +167,30 @@ func analyzeString(s string) (length int, wordCount int, hasDigits bool, hasSpec
 			hasSpecial = true
 		}
 	}
-	
+
 	return
 }
 
 // Additional demonstration
 func demonstrateAdvancedReturns() {
 	fmt.Println("\n--- Advanced Multiple Returns ---")
-	
+
 	// Validation example
 	valid, msg, errs := validateInput("jo", "123")
 	fmt.Printf("Valid: %t, Message: %s, Errors: %v\n", valid, msg, errs)
-	
+
 	// Coordinates example
 	x, y, z := getCoordinates()
 	fmt.Printf("Coordinates: (%.1f, %.1f, %.1f)\n", x, y, z)
-	
+
 	// Statistics example
 	numbers := []float64{1.5, 2.7, 3.1, 4.9, 5.2}
 	min, max, avg := stats(numbers)
 	fmt.Printf("Stats - Min: %.1f, Max: %.1f, Avg: %.1f\n", min, max, avg)
-	
+
 	// String analysis example
 	text := "Hello World 2023!"
 	length, words, digits, special := analyzeString(text)
-	fmt.Printf("Analysis - Length: %d, Words: %d, HasDigits: %t, HasSpecial: %t\n", 
+	fmt.Printf("Analysis - Length: %d, Words: %d, HasDigits: %t, HasSpecial: %t\n",
 		length, words, digits, special)
 }

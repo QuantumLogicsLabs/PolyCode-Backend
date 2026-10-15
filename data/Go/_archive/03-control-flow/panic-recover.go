@@ -6,31 +6,31 @@ import (
 
 func main() {
 	fmt.Println("=== Panic and Recover ===")
-	
+
 	// Basic panic
 	fmt.Println("\n--- Basic Panic ---")
 	basicPanic()
-	
+
 	// Panic with recovery
 	fmt.Println("\n--- Panic with Recovery ---")
 	safeOperation()
-	
+
 	// Panic in functions
 	fmt.Println("\n--- Panic in Functions ---")
 	if err := riskyOperation(); err != nil {
 		fmt.Printf("Risky operation failed: %v\n", err)
 	}
-	
+
 	// Panic with different types
 	fmt.Println("\n--- Panic with Different Types ---")
 	panicWithTypes()
-	
+
 	// Real-world example: validation
 	fmt.Println("\n--- Real-world Validation Example ---")
 	if err := processData(-5); err != nil {
 		fmt.Printf("Validation error: %v\n", err)
 	}
-	
+
 	// Panic vs error
 	fmt.Println("\n--- Panic vs Error ---")
 	fmt.Println("Use errors for expected problems")
@@ -38,6 +38,12 @@ func main() {
 }
 
 func basicPanic() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Recovered from basic panic: %v\n", r)
+		}
+	}()
+
 	fmt.Println("About to panic...")
 	panic("Something went terribly wrong!")
 	// This line will never execute
@@ -51,12 +57,12 @@ func safeOperation() {
 			fmt.Println("Operation can continue safely")
 		}
 	}()
-	
+
 	fmt.Println("Starting safe operation")
-	
+
 	// This will panic but be recovered
 	panic("Simulated error")
-	
+
 	fmt.Println("This won't execute due to panic")
 }
 
@@ -74,15 +80,15 @@ func riskyOperation() (err error) {
 			}
 		}
 	}()
-	
+
 	fmt.Println("Performing risky operation...")
-	
+
 	// Simulate a condition that should panic
 	shouldPanic := true
 	if shouldPanic {
 		panic("critical system failure")
 	}
-	
+
 	return nil
 }
 
@@ -96,7 +102,7 @@ func panicWithTypes() {
 		}()
 		panic("string panic")
 	}()
-	
+
 	// Panic with error
 	func() {
 		defer func() {
@@ -106,7 +112,7 @@ func panicWithTypes() {
 		}()
 		panic(fmt.Errorf("error panic"))
 	}()
-	
+
 	// Panic with integer
 	func() {
 		defer func() {
@@ -124,16 +130,16 @@ func processData(value int) error {
 			fmt.Printf("Panic caught in processData: %v\n", r)
 		}
 	}()
-	
+
 	// Validate input
 	if value < 0 {
 		return fmt.Errorf("value cannot be negative: %d", value)
 	}
-	
+
 	if value > 100 {
 		panic(fmt.Sprintf("value too large: %d", value))
 	}
-	
+
 	fmt.Printf("Processing value: %d\n", value)
 	return nil
 }

@@ -20,8 +20,9 @@
 .NOTES
     File:      SystemAdministrationToolkit.ps1
     Author:    PowerShell Learning Guide
-    Version:   1.0.0
+    Version:   1.0.1
     Created:   2023-12-01
+    Updated:   Fixed Logger constructor overloads and ListServices syntax
 #>
 
 # Module requirements
@@ -30,7 +31,7 @@
 # Write-Host banner
 Write-Host "=== System Administration Toolkit ===" -ForegroundColor Green
 Write-Host "Comprehensive PowerShell Learning Project" -ForegroundColor Cyan
-Write-Host "Version 1.0.0" -ForegroundColor Gray
+Write-Host "Version 1.0.1" -ForegroundColor Gray
 
 # Configuration management class
 class ConfigurationManager {
@@ -124,7 +125,15 @@ class Logger {
     [string]$LogPath
     [int]$LogLevel  # 0=Info, 1=Warning, 2=Error, 3=Critical
     
-    Logger([string]$logPath, [int]$logLevel = 0) {
+    # Explicit 1-argument constructor
+    Logger([string]$logPath) {
+        $this.LogPath = $logPath
+        $this.LogLevel = 0
+        $this.InitializeLog()
+    }
+
+    # Explicit 2-argument constructor
+    Logger([string]$logPath, [int]$logLevel) {
         $this.LogPath = $logPath
         $this.LogLevel = $logLevel
         $this.InitializeLog()
@@ -792,7 +801,7 @@ class SystemAdministrationToolkit {
         
         $serviceName = Read-Host "Enter service name (leave empty for all services)"
         
-        $this.Logger.Info("Listing services for: $computerName"
+        $this.Logger.Info("Listing services for: $computerName")
         if ($serviceName) {
             $this.Logger.Info("Filtering by service: $serviceName")
         }
@@ -1007,7 +1016,6 @@ class SystemAdministrationToolkit {
             Write-Host "No log file found at: $logPath" -ForegroundColor Yellow
         }
     }
-}
 }
 
 # Main execution

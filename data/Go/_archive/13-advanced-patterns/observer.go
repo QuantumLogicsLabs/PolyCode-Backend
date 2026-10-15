@@ -19,7 +19,7 @@ type Subject interface {
 
 // Concrete subject
 type WeatherStation struct {
-	observers []Observer
+	observers   []Observer
 	temperature float64
 	humidity    float64
 	mu          sync.RWMutex
@@ -40,7 +40,7 @@ func (ws *WeatherStation) Attach(observer Observer) {
 func (ws *WeatherStation) Detach(observer Observer) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	
+
 	for i, obs := range ws.observers {
 		if obs == observer {
 			ws.observers = append(ws.observers[:i], ws.observers[i+1:]...)
@@ -52,7 +52,7 @@ func (ws *WeatherStation) Detach(observer Observer) {
 func (ws *WeatherStation) Notify(data interface{}) {
 	ws.mu.RLock()
 	defer ws.mu.RUnlock()
-	
+
 	for _, observer := range ws.observers {
 		observer.Update(data)
 	}
@@ -60,16 +60,15 @@ func (ws *WeatherStation) Notify(data interface{}) {
 
 func (ws *WeatherStation) SetMeasurements(temp, humidity float64) {
 	ws.mu.Lock()
-	defer ws.mu.Unlock()
-	
 	ws.temperature = temp
 	ws.humidity = humidity
-	
+
 	data := map[string]float64{
 		"temperature": temp,
 		"humidity":    humidity,
 	}
-	
+	ws.mu.Unlock()
+
 	ws.Notify(data)
 }
 
@@ -118,24 +117,24 @@ func NewStatisticsDisplay() *StatisticsDisplay {
 func (sd *StatisticsDisplay) Update(data interface{}) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
-	
+
 	if measurements, ok := data.(map[string]float64); ok {
 		sd.temperatures = append(sd.temperatures, measurements["temperature"])
 		sd.humidities = append(sd.humidities, measurements["humidity"])
-		
+
 		if len(sd.temperatures) > 0 {
 			avgTemp := 0.0
 			for _, t := range sd.temperatures {
 				avgTemp += t
 			}
 			avgTemp /= float64(len(sd.temperatures))
-			
+
 			avgHum := 0.0
 			for _, h := range sd.humidities {
 				avgHum += h
 			}
 			avgHum /= float64(len(sd.humidities))
-			
+
 			fmt.Printf("[Stats] Avg Temperature: %.1f°C, Avg Humidity: %.1f%%\n", avgTemp, avgHum)
 		}
 	}

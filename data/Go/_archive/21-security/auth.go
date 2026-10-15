@@ -2,9 +2,13 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,14 +21,7 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// AuthService handles authentication
-type AuthService struct {
-	users    map[string]*User
-	sessions map[string]*Session
-	hasher   PasswordHasher
-	jwt      JWTService
-}
-
+// Session model
 type Session struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`
@@ -33,150 +30,12 @@ type Session struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func NewAuthService() *AuthService {
-	return &AuthService{
-		users:    make(map[string]*User),
-		sessions: make(map[string]*Session),
-		hasher:   NewBcryptHasher(),
-		jwt:      NewJWTService("my-secret-key"),
-	}
-}
-
-func (a *AuthService) Register(email, password string) (*User, error) {
-	if _, exists := a.users[email]; exists {
-		return nil, errors.New("user already exists")
-	}
-	
-	if !isValidEmail(email) {
-		return nil, errors.New("invalid email format")
-	}
-	
-	if len(password) < 8 {
-		return nil, errors.New("password must be at least 8 characters")
-	}
-	
-	hashedPassword, err := a.hasher.Hash(password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-	
-	user := &User{
-		ID:        generateID(),
-		Email:     email,
-		Password:  hashedPassword,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	
-	a.users[email] = user
-	return user, nil
-}
-
-func (a *AuthService) Login(email, password string) (string, error) {
-	user, exists := a.users[email]
-	if !exists {
-		return "", errors.New("user not found")
-	}
-	
-	if !a.hasher.Verify(password, user.Password) {
-		return "", errors.New("invalid password")
-	}
-	
-	// Create JWT token
-	claims := &JWTClaims{
-		UserID: user.ID,
-		Email:  user.Email,
-	}
-	
-	token, err := a.jwt.GenerateToken(claims)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate token: %w", err)
-	}
-	
-	// Create session
-	session := &Session{
-		ID:        generateID(),
-		UserID:    user.ID,
-		Token:     token,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		CreatedAt: time.Now(),
-	}
-	
-	a.sessions[token] = session
-	return token, nil
-}
-
-func (a *AuthService) ValidateToken(token string) (*User, error) {
-	session, exists := a.sessions[token]
-	if !exists {
-		return "", errors.New("session not found")
-	}
-	
-	if time.Now().After(session.ExpiresAt) {
-		delete(a.sessions, token)
-		return "", errors.New("session expired")
-	}
-	
-	// Validate JWT
-	claims, err := a.jwt.ValidateToken(token)
-	if err != nil {
-		delete(a.sessions, token)
-		return "", fmt.Errorf("invalid token: %w", err)
-	}
-	
-	user, exists := a.users[claims.Email]
-	if !exists {
-		return "", errors.New("user not found")
-	}
-	
-	return user, nil
-}
-
-func (a *AuthService) Logout(token string) error {
-	delete(a.sessions, token)
-	return nil
-}
-
-func (a *AuthService) RefreshToken(token string) (string, error) {
-	user, err := a.ValidateToken(token)
-	if err != nil {
-		return "", err
-	}
-	
-	// Create new token
-	claims := &JWTClaims{
-		UserID: user.ID,
-		Email:  user.Email,
-	}
-	
-	newToken, err := a.jwt.GenerateToken(claims)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate new token: %w", err)
-	}
-	
-	// Remove old session
-	delete(a.sessions, token)
-	
-	// Create new session
-	session := &Session{
-		ID:        generateID(),
-		UserID:    user.ID,
-		Token:     newToken,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		CreatedAt: time.Now(),
-	}
-	
-	a.sessions[newToken] = session
-	return newToken, nil
-}
-
 // PasswordHasher interface
 type PasswordHasher interface {
 	Hash(password string) (string, error)
 	Verify(password, hash string) bool
 }
 
-// BcryptHasher implements PasswordHasher
 type BcryptHasher struct {
 	cost int
 }
@@ -186,24 +45,17 @@ func NewBcryptHasher() *BcryptHasher {
 }
 
 func (b *BcryptHasher) Hash(password string) (string, error) {
-	// Simplified bcrypt implementation
-	// In production, use golang.org/x/crypto/bcrypt
 	salt := generateSalt()
-	hashed := simpleHash(password + salt)
+	hashed := sha256Hex(password + salt)
 	return fmt.Sprintf("%s$%s", salt, hashed), nil
 }
 
 func (b *BcryptHasher) Verify(password, hash string) bool {
-	parts := splitString(hash, "$")
+	parts := strings.Split(hash, "$")
 	if len(parts) != 2 {
 		return false
 	}
-	
-	salt := parts[0]
-	expectedHash := parts[1]
-	
-	actualHash := simpleHash(password + salt)
-	return actualHash == expectedHash
+	return sha256Hex(password+parts[0]) == parts[1]
 }
 
 // JWT Service
@@ -228,128 +80,248 @@ func (j *JWTService) GenerateToken(claims *JWTClaims) (string, error) {
 		claims.ExpiresAt = time.Now().Add(24 * time.Hour).Unix()
 	}
 	claims.IssuedAt = time.Now().Unix()
-	
-	// Simplified JWT implementation
-	// In production, use github.com/golang-jwt/jwt
-	tokenData := fmt.Sprintf("%s.%s", j.secretKey, claimsToString(claims))
-	signature := simpleHash(tokenData)
-	
-	return fmt.Sprintf("%s.%s", tokenData, signature), nil
+
+	headerEnc := base64.RawURLEncoding.EncodeToString([]byte("HS256"))
+	rawPayload := fmt.Sprintf("user_id=%s;email=%s;exp=%d;iat=%d",
+		claims.UserID, claims.Email, claims.ExpiresAt, claims.IssuedAt)
+	payloadEnc := base64.RawURLEncoding.EncodeToString([]byte(rawPayload))
+
+	signature := sha256Hex(fmt.Sprintf("%s.%s.%s", headerEnc, payloadEnc, j.secretKey))
+	return fmt.Sprintf("%s.%s.%s", headerEnc, payloadEnc, signature), nil
 }
 
 func (j *JWTService) ValidateToken(token string) (*JWTClaims, error) {
-	parts := splitString(token, ".")
+	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return nil, errors.New("invalid token format")
 	}
-	
-	tokenData := fmt.Sprintf("%s.%s", parts[0], parts[1])
-	expectedSignature := simpleHash(tokenData)
-	
-	if parts[2] != expectedSignature {
+
+	headerEnc, payloadEnc, signature := parts[0], parts[1], parts[2]
+	expectedSignature := sha256Hex(fmt.Sprintf("%s.%s.%s", headerEnc, payloadEnc, j.secretKey))
+
+	if signature != expectedSignature {
 		return nil, errors.New("invalid token signature")
 	}
-	
-	claims, err := stringToClaims(parts[1])
+
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(payloadEnc)
 	if err != nil {
-		return nil, fmt.Errorf("invalid claims: %w", err)
+		return nil, errors.New("invalid payload encoding")
 	}
-	
-	if claims.ExpiresAt > 0 && time.Now().Unix() > claims.ExpiresAt {
-		return nil, errors.New("token expired")
-	}
-	
-	return claims, nil
-}
 
-// Utility functions
-func generateID() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
-
-func generateSalt() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
-
-func simpleHash(input string) string {
-	// Simplified hash function
-	// In production, use proper cryptographic hash
-	hash := 0
-	for _, c := range input {
-		hash = hash*31 + int(c)
-	}
-	return fmt.Sprintf("%x", hash)
-}
-
-func isValidEmail(email string) bool {
-	return contains(email, "@") && contains(email, ".")
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func splitString(s, sep string) []string {
-	var parts []string
-	start := 0
-	
-	for i := 0; i < len(s); i++ {
-		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
-			parts = append(parts, s[start:i])
-			start = i + len(sep)
-			i += len(sep) - 1
-		}
-	}
-	
-	parts = append(parts, s[start:])
-	return parts
-}
-
-func claimsToString(claims *JWTClaims) string {
-	return fmt.Sprintf("user_id:%s,email:%s,exp:%d,iat:%d", 
-		claims.UserID, claims.Email, claims.ExpiresAt, claims.IssuedAt)
-}
-
-func stringToClaims(s string) (*JWTClaims, error) {
-	// Simplified parsing
-	// In production, use JSON parsing
-	parts := splitString(s, ",")
 	claims := &JWTClaims{}
-	
-	for _, part := range parts {
-		keyValue := splitString(part, ":")
-		if len(keyValue) == 2 {
-			switch keyValue[0] {
+	for _, kvPair := range strings.Split(string(payloadBytes), ";") {
+		kv := strings.Split(kvPair, "=")
+		if len(kv) == 2 {
+			switch kv[0] {
 			case "user_id":
-				claims.UserID = keyValue[1]
+				claims.UserID = kv[1]
 			case "email":
-				claims.Email = keyValue[1]
+				claims.Email = kv[1]
 			case "exp":
-				claims.ExpiresAt = parseInt(keyValue[1])
+				claims.ExpiresAt, _ = strconv.ParseInt(kv[1], 10, 64)
 			case "iat":
-				claims.IssuedAt = parseInt(keyValue[1])
+				claims.IssuedAt, _ = strconv.ParseInt(kv[1], 10, 64)
 			}
 		}
 	}
-	
+
+	if claims.ExpiresAt > 0 && time.Now().Unix() > claims.ExpiresAt {
+		return nil, errors.New("token expired")
+	}
+
 	return claims, nil
 }
 
-func parseInt(s string) int64 {
-	result := int64(0)
-	for _, c := range s {
-		if c >= '0' && c <= '9' {
-			result = result*10 + int64(c-'0')
-		}
+// AuthService handles authentication
+type AuthService struct {
+	users    map[string]*User
+	sessions map[string]*Session
+	hasher   PasswordHasher
+	jwt      *JWTService
+}
+
+func NewAuthService() *AuthService {
+	return &AuthService{
+		users:    make(map[string]*User),
+		sessions: make(map[string]*Session),
+		hasher:   NewBcryptHasher(),
+		jwt:      NewJWTService("my-secret-key"),
 	}
-	return result
+}
+
+func (a *AuthService) Register(email, password string) (*User, error) {
+	if _, exists := a.users[email]; exists {
+		return nil, errors.New("user already exists")
+	}
+
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		return nil, errors.New("invalid email format")
+	}
+
+	if len(password) < 8 {
+		return nil, errors.New("password must be at least 8 characters")
+	}
+
+	hashedPassword, err := a.hasher.Hash(password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user := &User{
+		ID:        generateID(),
+		Email:     email,
+		Password:  hashedPassword,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	a.users[email] = user
+	return user, nil
+}
+
+func (a *AuthService) Login(email, password string) (string, error) {
+	user, exists := a.users[email]
+	if !exists {
+		return "", errors.New("user not found")
+	}
+
+	if !a.hasher.Verify(password, user.Password) {
+		return "", errors.New("invalid password")
+	}
+
+	claims := &JWTClaims{
+		UserID: user.ID,
+		Email:  user.Email,
+	}
+
+	token, err := a.jwt.GenerateToken(claims)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	session := &Session{
+		ID:        generateID(),
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: time.Now(),
+	}
+
+	a.sessions[token] = session
+	return token, nil
+}
+
+func (a *AuthService) ValidateToken(token string) (*User, error) {
+	session, exists := a.sessions[token]
+	if !exists {
+		return nil, errors.New("session not found")
+	}
+
+	if time.Now().After(session.ExpiresAt) {
+		delete(a.sessions, token)
+		return nil, errors.New("session expired")
+	}
+
+	claims, err := a.jwt.ValidateToken(token)
+	if err != nil {
+		delete(a.sessions, token)
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	user, exists := a.users[claims.Email]
+	if !exists {
+		return nil, errors.New("user not found")
+	}
+
+	return user, nil
+}
+
+func (a *AuthService) Logout(token string) error {
+	delete(a.sessions, token)
+	return nil
+}
+
+func (a *AuthService) RefreshToken(token string) (string, error) {
+	user, err := a.ValidateToken(token)
+	if err != nil {
+		return "", err
+	}
+
+	claims := &JWTClaims{
+		UserID: user.ID,
+		Email:  user.Email,
+	}
+
+	newToken, err := a.jwt.GenerateToken(claims)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate new token: %w", err)
+	}
+
+	delete(a.sessions, token)
+
+	session := &Session{
+		ID:        generateID(),
+		UserID:    user.ID,
+		Token:     newToken,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: time.Now(),
+	}
+
+	a.sessions[newToken] = session
+	return newToken, nil
+}
+
+// Helpers
+func generateID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func generateSalt() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func sha256Hex(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
+func main() {
+	fmt.Println("=== Authentication Service Demo ===")
+	auth := NewAuthService()
+
+	// 1. Register
+	user, err := auth.Register("alice@example.com", "securePass123")
+	if err != nil {
+		fmt.Printf("Registration error: %v\n", err)
+		return
+	}
+	fmt.Printf("Registered user: ID=%s, Email=%s\n", user.ID, user.Email)
+
+	// 2. Login
+	token, err := auth.Login("alice@example.com", "securePass123")
+	if err != nil {
+		fmt.Printf("Login error: %v\n", err)
+		return
+	}
+	fmt.Printf("Login success, JWT Token: %s\n", token)
+
+	// 3. Validate Token
+	valUser, err := auth.ValidateToken(token)
+	if err != nil {
+		fmt.Printf("Token validation failed: %v\n", err)
+		return
+	}
+	fmt.Printf("Token valid for: %s (ID: %s)\n", valUser.Email, valUser.ID)
+
+	// 4. Refresh Token
+	newToken, err := auth.RefreshToken(token)
+	if err != nil {
+		fmt.Printf("Token refresh failed: %v\n", err)
+		return
+	}
+	fmt.Printf("Refreshed JWT Token: %s\n", newToken)
 }

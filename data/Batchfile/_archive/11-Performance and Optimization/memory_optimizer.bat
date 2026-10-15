@@ -7,9 +7,9 @@ setlocal enabledelayedexpansion
 echo Memory Optimization Tool
 echo ========================
 
-:: Get current memory usage
-for /f "skip=1" %%p in ('wmic OS get TotalVisibleMemorySize') do set "total_mem=%%p"
-for /f "skip=1" %%a in ('wmic OS get FreePhysicalMemory') do set "free_mem=%%a"
+:: Get current memory usage using PowerShell (compatible with modern Windows)
+for /f "tokens=*" %%i in ('powershell -command "(Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize"') do set "total_mem=%%i"
+for /f "tokens=*" %%i in ('powershell -command "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"') do set "free_mem=%%i"
 
 :: Calculate used memory (convert KB to MB)
 set /a "total_mb=%total_mem%/1024"

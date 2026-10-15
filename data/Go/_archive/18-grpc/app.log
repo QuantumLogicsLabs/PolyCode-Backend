@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-29T12:56:29.4544601+05:00","level":"INFO","message":"Log message for rotation test","fields":{"data":"sample log data"}}
+{"timestamp":"2026-08-29T12:56:29.4559407+05:00","level":"INFO","message":"Logging simultaneously to console and file","fields":{"status":"success"}}

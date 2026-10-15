@@ -18,13 +18,12 @@ type Encryptor interface {
 	Decrypt(ciphertext string) (string, error)
 }
 
-// AESEncryptor implements AES encryption
+// AESEncryptor implements AES-GCM encryption
 type AESEncryptor struct {
 	key []byte
 }
 
 func NewAESEncryptor(keyString string) *AESEncryptor {
-	// Convert key string to 32-byte key using SHA256
 	hash := sha256.Sum256([]byte(keyString))
 	return &AESEncryptor{key: hash[:]}
 }
@@ -34,82 +33,71 @@ func (a *AESEncryptor) Encrypt(plaintext string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
-	// Create byte array from plaintext
+
 	plaintextBytes := []byte(plaintext)
-	
-	// Create GCM cipher
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
-	// Create nonce
+
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	
-	// Encrypt
+
 	ciphertext := gcm.Seal(nonce, nonce, plaintextBytes, nil)
-	
-	// Return base64 encoded ciphertext
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
 func (a *AESEncryptor) Decrypt(ciphertext string) (string, error) {
-	// Decode base64
 	ciphertextBytes, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode ciphertext: %w", err)
 	}
-	
+
 	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		return "", fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
+
 	nonceSize := gcm.NonceSize()
 	if len(ciphertextBytes) < nonceSize {
 		return "", errors.New("ciphertext too short")
 	}
-	
+
 	nonce, ciphertextBytes := ciphertextBytes[:nonceSize], ciphertextBytes[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertextBytes, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt: %w", err)
 	}
-	
+
 	return string(plaintext), nil
 }
 
-// RSAPublicKey represents RSA public key
+// RSA Keys and simplified RSA Encryptor
 type RSAPublicKey struct {
-	N string `json:"n"` // Modulus
-	E string `json:"e"` // Exponent
+	N string `json:"n"`
+	E string `json:"e"`
 }
 
-// RSAPrivateKey represents RSA private key
 type RSAPrivateKey struct {
 	N string `json:"n"`
-	D string `json:"d"` // Private exponent
-	P string `json:"p"` // Prime factor
-	Q string `json:"q"` // Prime factor
+	D string `json:"d"`
+	P string `json:"p"`
+	Q string `json:"q"`
 }
 
-// RSAEncryptor implements RSA encryption (simplified)
 type RSAEncryptor struct {
 	publicKey  *RSAPublicKey
 	privateKey *RSAPrivateKey
 }
 
 func NewRSAEncryptor() *RSAEncryptor {
-	// In production, generate proper RSA keys
 	return &RSAEncryptor{
 		publicKey: &RSAPublicKey{
 			N: "1234567890123456789012345678901234567890",
@@ -125,48 +113,40 @@ func NewRSAEncryptor() *RSAEncryptor {
 }
 
 func (r *RSAEncryptor) Encrypt(plaintext string) (string, error) {
-	// Simplified RSA encryption
-	// In production, use crypto/rsa package
-	
-	// Convert plaintext to bytes
 	plaintextBytes := []byte(plaintext)
-	
-	// Simple XOR encryption for demonstration
 	key := []byte(r.publicKey.N)
 	if len(key) > len(plaintextBytes) {
 		key = key[:len(plaintextBytes)]
 	}
-	
+
 	encrypted := make([]byte, len(plaintextBytes))
 	for i := 0; i < len(plaintextBytes); i++ {
 		encrypted[i] = plaintextBytes[i] ^ key[i%len(key)]
 	}
-	
+
 	return hex.EncodeToString(encrypted), nil
 }
 
 func (r *RSAEncryptor) Decrypt(ciphertext string) (string, error) {
-	// Decode hex
 	ciphertextBytes, err := hex.DecodeString(ciphertext)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode ciphertext: %w", err)
 	}
-	
-	// Simple XOR decryption
+
 	key := []byte(r.privateKey.N)
 	if len(key) > len(ciphertextBytes) {
 		key = key[:len(ciphertextBytes)]
 	}
-	
+
 	decrypted := make([]byte, len(ciphertextBytes))
 	for i := 0; i < len(ciphertextBytes); i++ {
 		decrypted[i] = ciphertextBytes[i] ^ key[i%len(key)]
 	}
-	
+
 	return string(decrypted), nil
 }
 
-// Hashing utilities
+// Hasher interface and SHA256 implementation
 type Hasher interface {
 	Hash(data string) string
 	Verify(data, hash string) bool
@@ -187,7 +167,7 @@ func (s *SHA256Hasher) Verify(data, hash string) bool {
 	return s.Hash(data) == hash
 }
 
-// KeyDerivation for generating keys from passwords
+// KeyDerivation
 type KeyDerivation struct {
 	salt []byte
 }
@@ -199,27 +179,22 @@ func NewKeyDerivation(salt string) *KeyDerivation {
 }
 
 func (k *KeyDerivation) DeriveKey(password string, length int) []byte {
-	// Simplified key derivation
-	// In production, use crypto/scrypt or crypto/pbkdf2
-	
 	hasher := sha256.New()
 	hasher.Write([]byte(password))
 	hasher.Write(k.salt)
-	
+
 	hash := hasher.Sum(nil)
-	
-	// Repeat until we have enough bytes
 	for len(hash) < length {
 		hasher.Reset()
 		hasher.Write(hash)
 		hasher.Write(k.salt)
 		hash = hasher.Sum(hash)
 	}
-	
+
 	return hash[:length]
 }
 
-// Digital signature (simplified)
+// Digital Signature
 type DigitalSignature struct {
 	privateKey string
 	publicKey  string
@@ -233,13 +208,10 @@ func NewDigitalSignature() *DigitalSignature {
 }
 
 func (d *DigitalSignature) Sign(message string) (string, error) {
-	// Simplified signing
-	// In production, use proper digital signature algorithms
-	
 	hasher := sha256.New()
 	hasher.Write([]byte(message))
 	hasher.Write([]byte(d.privateKey))
-	
+
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash), nil
 }
@@ -249,50 +221,10 @@ func (d *DigitalSignature) Verify(message, signature string) bool {
 	if err != nil {
 		return false
 	}
-	
 	return signature == expectedSignature
 }
 
-// Secure random generator
-type SecureRandom struct{}
-
-func NewSecureRandom() *SecureRandom {
-	return &SecureRandom{}
-}
-
-func (s *SecureRandom) GenerateBytes(length int) ([]byte, error) {
-	bytes := make([]byte, length)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate random bytes: %w", err)
-	}
-	return bytes, nil
-}
-
-func (s *SecureRandom) GenerateString(length int) (string, error) {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	bytes, err := s.GenerateBytes(length)
-	if err != nil {
-		return "", err
-	}
-	
-	for i, b := range bytes {
-		bytes[i] = charset[b%byte(len(charset))]
-	}
-	
-	return string(bytes), nil
-}
-
-func (s *SecureRandom) GenerateHex(length int) (string, error) {
-	bytes, err := s.GenerateBytes(length)
-	if err != nil {
-		return "", err
-	}
-	
-	return hex.EncodeToString(bytes), nil
-}
-
-// Password strength checker
+// Password Strength
 type PasswordStrength struct{}
 
 func NewPasswordStrength() *PasswordStrength {
@@ -301,61 +233,57 @@ func NewPasswordStrength() *PasswordStrength {
 
 func (p *PasswordStrength) CheckStrength(password string) (int, string) {
 	score := 0
-	feedbacks := []string{}
-	
-	// Length check
+	var feedbacks []string
+
 	if len(password) >= 8 {
-		score += 1
+		score++
 	} else {
 		feedbacks = append(feedbacks, "Password should be at least 8 characters")
 	}
-	
+
 	if len(password) >= 12 {
-		score += 1
+		score++
 	}
-	
-	// Complexity checks
+
 	if hasUpperCase(password) {
-		score += 1
+		score++
 	} else {
 		feedbacks = append(feedbacks, "Password should contain uppercase letters")
 	}
-	
+
 	if hasLowerCase(password) {
-		score += 1
+		score++
 	} else {
 		feedbacks = append(feedbacks, "Password should contain lowercase letters")
 	}
-	
+
 	if hasDigit(password) {
-		score += 1
+		score++
 	} else {
 		feedbacks = append(feedbacks, "Password should contain digits")
 	}
-	
+
 	if hasSpecialChar(password) {
-		score += 1
+		score++
 	} else {
 		feedbacks = append(feedbacks, "Password should contain special characters")
 	}
-	
-	// Return strength level
+
 	strength := "Weak"
 	if score >= 5 {
 		strength = "Strong"
 	} else if score >= 3 {
 		strength = "Medium"
 	}
-	
+
 	feedback := strength
 	if len(feedbacks) > 0 {
 		feedback += ": " + joinStrings(feedbacks, ", ")
 	}
-	
+
 	return score, feedback
 }
 
-// Utility functions
 func hasUpperCase(s string) bool {
 	for _, c := range s {
 		if c >= 'A' && c <= 'Z' {
@@ -399,10 +327,33 @@ func joinStrings(strs []string, sep string) string {
 	if len(strs) == 0 {
 		return ""
 	}
-	
 	result := strs[0]
 	for i := 1; i < len(strs); i++ {
 		result += sep + strs[i]
 	}
 	return result
+}
+
+func main() {
+	fmt.Println("=== AES Encryption Demo ===")
+	aesEnc := NewAESEncryptor("super-secret-passphrase-key-32b")
+	plain := "Sensitive User Data"
+	encrypted, _ := aesEnc.Encrypt(plain)
+	decrypted, _ := aesEnc.Decrypt(encrypted)
+	fmt.Printf("Plaintext: %s\nEncrypted (Base64): %s\nDecrypted: %s\nMatch: %t\n", plain, encrypted, decrypted, plain == decrypted)
+
+	fmt.Println("\n=== SHA-256 Hashing Demo ===")
+	hasher := NewSHA256Hasher()
+	hash := hasher.Hash("PolyCodeBackend2026")
+	fmt.Printf("SHA-256 Hash: %s\nHash Verified: %t\n", hash, hasher.Verify("PolyCodeBackend2026", hash))
+
+	fmt.Println("\n=== Digital Signature Demo ===")
+	signer := NewDigitalSignature()
+	sig, _ := signer.Sign("Critical Financial Order #1001")
+	fmt.Printf("Signature: %s\nSignature Verified: %t\n", sig, signer.Verify("Critical Financial Order #1001", sig))
+
+	fmt.Println("\n=== Password Strength Demo ===")
+	checker := NewPasswordStrength()
+	score, feedback := checker.CheckStrength("P@ssw0rd2026!Sec")
+	fmt.Printf("Score: %d/6\nFeedback: %s\n", score, feedback)
 }

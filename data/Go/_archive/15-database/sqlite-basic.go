@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -21,28 +20,23 @@ type User struct {
 func main() {
 	fmt.Println("=== SQLite Database Operations ===")
 
-	// Create database file
 	dbPath := "users.db"
 	defer cleanupDatabase(dbPath)
 
-	// Open database connection
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}
 	defer db.Close()
 
-	// Create table
 	if err := createUsersTable(db); err != nil {
 		log.Fatal("Failed to create table:", err)
 	}
 
-	// Insert sample data
 	if err := insertSampleUsers(db); err != nil {
 		log.Fatal("Failed to insert data:", err)
 	}
 
-	// Query operations
 	fmt.Println("\n--- All Users ---")
 	if err := queryAllUsers(db); err != nil {
 		log.Fatal("Failed to query users:", err)
@@ -58,13 +52,11 @@ func main() {
 		log.Fatal("Failed to query single user:", err)
 	}
 
-	// Update operation
 	fmt.Println("\n--- Update User ---")
 	if err := updateUser(db, 1, "John Updated"); err != nil {
 		log.Fatal("Failed to update user:", err)
 	}
 
-	// Delete operation
 	fmt.Println("\n--- Delete User ---")
 	if err := deleteUser(db, 3); err != nil {
 		log.Fatal("Failed to delete user:", err)
@@ -75,7 +67,6 @@ func main() {
 		log.Fatal("Failed to query final users:", err)
 	}
 
-	// Transaction example
 	fmt.Println("\n--- Transaction Example ---")
 	if err := demonstrateTransaction(db); err != nil {
 		log.Fatal("Failed transaction demo:", err)
@@ -240,14 +231,12 @@ func demonstrateTransaction(db *sql.DB) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	// Defer rollback in case of failure
 	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
 	}()
 
-	// Insert multiple users in transaction
 	users := []struct {
 		name  string
 		email string
@@ -265,14 +254,11 @@ func demonstrateTransaction(db *sql.DB) error {
 		}
 	}
 
-	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	fmt.Println("✓ Transaction completed successfully")
-	
-	// Show the new users
 	return queryAllUsers(db)
 }
 

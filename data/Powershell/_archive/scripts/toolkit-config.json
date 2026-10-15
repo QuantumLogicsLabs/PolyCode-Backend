@@ -1,0 +1,26 @@
+{
+    "Monitoring":  {
+                       "MemoryThreshold":  85,
+                       "CPUThreshold":  80,
+                       "ServiceCheckInterval":  300,
+                       "DiskThreshold":  90
+                   },
+    "Security":  {
+                     "LogSensitiveData":  false,
+                     "AuditCommands":  true,
+                     "RequireElevation":  true
+                 },
+    "General":  {
+                    "TimeoutSeconds":  30,
+                    "LogPath":  "./toolkit.log",
+                    "MaxConcurrentJobs":  5
+                },
+    "Reporting":  {
+                      "EmailRecipients":  [
+
+                                          ],
+                      "EmailEnabled":  false,
+                      "RetentionDays":  30,
+                      "OutputPath":  "./reports"
+                  }
+}

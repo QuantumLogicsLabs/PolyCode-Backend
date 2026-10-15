@@ -4,32 +4,133 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
 	"time"
 )
 
-// Context keys for logging
-type contextKey string
+// LogLevel definitions
+type LogLevel int
 
 const (
-	UserIDKey    contextKey = "user_id"
-	RequestIDKey contextKey = "request_id"
-	SessionIDKey contextKey = "session_id"
-	TraceIDKey   contextKey = "trace_id"
-	CorrelationIDKey contextKey = "correlation_id"
+	LevelDebug LogLevel = iota
+	LevelInfo
+	LevelWarn
+	LevelError
+	LevelFatal
 )
 
-// ContextualLogger with context support
-type ContextualLogger struct {
-	*StructuredLogger
-}
-
-func NewContextualLogger() *ContextualLogger {
-	return &ContextualLogger{
-		StructuredLogger: NewStructuredLogger(),
+func (l LogLevel) String() string {
+	switch l {
+	case LevelDebug:
+		return "DEBUG"
+	case LevelInfo:
+		return "INFO"
+	case LevelWarn:
+		return "WARN"
+	case LevelError:
+		return "ERROR"
+	case LevelFatal:
+		return "FATAL"
+	default:
+		return "UNKNOWN"
 	}
 }
 
-// Context helpers
+// LogEntry represents a structured log entry
+type LogEntry struct {
+	Timestamp time.Time              `json:"timestamp"`
+	Level     string                 `json:"level"`
+	Message   string                 `json:"message"`
+	Fields    map[string]interface{} `json:"fields,omitempty"`
+}
+
+// StructuredLogger implements basic structured logging
+type StructuredLogger struct {
+	level  LogLevel
+	output *os.File
+}
+
+func NewStructuredLogger() *StructuredLogger {
+	return &StructuredLogger{
+		level:  LevelInfo,
+		output: os.Stdout,
+	}
+}
+
+func (l *StructuredLogger) SetLevel(level LogLevel) {
+	l.level = level
+}
+
+func (l *StructuredLogger) SetOutput(file *os.File) {
+	l.output = file
+}
+
+func (l *StructuredLogger) Debug(message string, fields map[string]interface{}) {
+	l.log(LevelDebug, message, fields)
+}
+
+func (l *StructuredLogger) Info(message string, fields map[string]interface{}) {
+	l.log(LevelInfo, message, fields)
+}
+
+func (l *StructuredLogger) Warn(message string, fields map[string]interface{}) {
+	l.log(LevelWarn, message, fields)
+}
+
+func (l *StructuredLogger) Error(message string, fields map[string]interface{}) {
+	l.log(LevelError, message, fields)
+}
+
+func (l *StructuredLogger) Fatal(message string, fields map[string]interface{}) {
+	l.log(LevelFatal, message, fields)
+	os.Exit(1)
+}
+
+func (l *StructuredLogger) log(level LogLevel, message string, fields map[string]interface{}) {
+	if level < l.level {
+		return
+	}
+
+	entry := LogEntry{
+		Timestamp: time.Now(),
+		Level:     level.String(),
+		Message:   message,
+		Fields:    fields,
+	}
+
+	jsonData, err := json.Marshal(entry)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
+		return
+	}
+
+	fmt.Fprintln(l.output, string(jsonData))
+}
+
+// Helper to combine field maps
+func MergeFields(fields ...map[string]interface{}) map[string]interface{} {
+	merged := make(map[string]interface{})
+	for _, f := range fields {
+		for k, v := range f {
+			merged[k] = v
+		}
+	}
+	return merged
+}
+
+// Context Logging keys and helpers
+type contextKey string
+
+const (
+	UserIDKey        contextKey = "user_id"
+	RequestIDKey     contextKey = "request_id"
+	SessionIDKey     contextKey = "session_id"
+	TraceIDKey       contextKey = "trace_id"
+	CorrelationIDKey contextKey = "correlation_id"
+)
+
 func WithUserID(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, UserIDKey, userID)
 }
@@ -42,335 +143,265 @@ func WithSessionID(ctx context.Context, sessionID string) context.Context {
 	return context.WithValue(ctx, SessionIDKey, sessionID)
 }
 
-func WithTraceID(ctx context.Context, traceID string) context.Context {
-	return context.WithValue(ctx, TraceIDKey, traceID)
+type ContextualLogger struct {
+	*StructuredLogger
 }
 
-func WithCorrelationID(ctx context.Context, correlationID string) context.Context {
-	return context.WithValue(ctx, CorrelationIDKey, correlationID)
+func NewContextualLogger() *ContextualLogger {
+	return &ContextualLogger{
+		StructuredLogger: NewStructuredLogger(),
+	}
 }
 
-// Extract context values
-func extractContextFields(ctx context.Context) map[string]interface{} {
+func (l *ContextualLogger) extractContextFields(ctx context.Context) map[string]interface{} {
 	fields := make(map[string]interface{})
-	
-	if userID := ctx.Value(UserIDKey); userID != nil {
-		fields["user_id"] = userID
+	if u := ctx.Value(UserIDKey); u != nil {
+		fields["user_id"] = u
 	}
-	
-	if requestID := ctx.Value(RequestIDKey); requestID != nil {
-		fields["request_id"] = requestID
+	if r := ctx.Value(RequestIDKey); r != nil {
+		fields["request_id"] = r
 	}
-	
-	if sessionID := ctx.Value(SessionIDKey); sessionID != nil {
-		fields["session_id"] = sessionID
+	if s := ctx.Value(SessionIDKey); s != nil {
+		fields["session_id"] = s
 	}
-	
-	if traceID := ctx.Value(TraceIDKey); traceID != nil {
-		fields["trace_id"] = traceID
-	}
-	
-	if correlationID := ctx.Value(CorrelationIDKey); correlationID != nil {
-		fields["correlation_id"] = correlationID
-	}
-	
 	return fields
 }
 
-func (l *ContextualLogger) DebugContext(ctx context.Context, message string, fields map[string]interface{}) {
-	contextFields := extractContextFields(ctx)
-	merged := MergeFields(contextFields, fields)
-	l.StructuredLogger.Debug(message, merged)
-}
-
 func (l *ContextualLogger) InfoContext(ctx context.Context, message string, fields map[string]interface{}) {
-	contextFields := extractContextFields(ctx)
-	merged := MergeFields(contextFields, fields)
+	merged := MergeFields(l.extractContextFields(ctx), fields)
 	l.StructuredLogger.Info(message, merged)
 }
 
-func (l *ContextualLogger) WarnContext(ctx context.Context, message string, fields map[string]interface{}) {
-	contextFields := extractContextFields(ctx)
-	merged := MergeFields(contextFields, fields)
-	l.StructuredLogger.Warn(message, merged)
-}
-
 func (l *ContextualLogger) ErrorContext(ctx context.Context, message string, fields map[string]interface{}) {
-	contextFields := extractContextFields(ctx)
-	merged := MergeFields(contextFields, fields)
+	merged := MergeFields(l.extractContextFields(ctx), fields)
 	l.StructuredLogger.Error(message, merged)
 }
 
-func (l *ContextualLogger) FatalContext(ctx context.Context, message string, fields map[string]interface{}) {
-	contextFields := extractContextFields(ctx)
-	merged := MergeFields(contextFields, fields)
-	l.StructuredLogger.Fatal(message, merged)
+// Level-filtering Logger
+type LevelLogger struct {
+	*StructuredLogger
 }
 
-// TraceLogger for distributed tracing
-type TraceLogger struct {
-	*ContextualLogger
+func NewLevelLogger(level LogLevel) *LevelLogger {
+	l := &LevelLogger{StructuredLogger: NewStructuredLogger()}
+	l.level = level
+	return l
 }
 
-func NewTraceLogger() *TraceLogger {
-	return &TraceLogger{
-		ContextualLogger: NewContextualLogger(),
+// Asynchronous Logger
+type AsyncLogger struct {
+	inputChan chan LogEntry
+	output    *os.File
+	wg        sync.WaitGroup
+	done      chan struct{}
+}
+
+func NewAsyncLogger(bufferSize int) *AsyncLogger {
+	al := &AsyncLogger{
+		inputChan: make(chan LogEntry, bufferSize),
+		output:    os.Stdout,
+		done:      make(chan struct{}),
+	}
+	al.wg.Add(1)
+	go func() {
+		defer al.wg.Done()
+		for {
+			select {
+			case entry := <-al.inputChan:
+				data, _ := json.Marshal(entry)
+				fmt.Fprintln(al.output, string(data))
+			case <-al.done:
+				for len(al.inputChan) > 0 {
+					entry := <-al.inputChan
+					data, _ := json.Marshal(entry)
+					fmt.Fprintln(al.output, string(data))
+				}
+				return
+			}
+		}
+	}()
+	return al
+}
+
+func (l *AsyncLogger) Info(message string, fields map[string]interface{}) {
+	l.inputChan <- LogEntry{Timestamp: time.Now(), Level: "INFO", Message: message, Fields: fields}
+}
+
+func (l *AsyncLogger) Flush() {
+	time.Sleep(50 * time.Millisecond)
+}
+
+func (l *AsyncLogger) Close() {
+	close(l.done)
+	l.wg.Wait()
+}
+
+// Rotating Logger
+type RotatingLogger struct {
+	filename string
+	file     *os.File
+}
+
+func NewRotatingLogger(filename string, maxSize int64, maxBackups int) *RotatingLogger {
+	dir := filepath.Dir(filename)
+	if dir != "." {
+		_ = os.MkdirAll(dir, 0755)
+	}
+	f, _ := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	return &RotatingLogger{filename: filename, file: f}
+}
+
+func (l *RotatingLogger) Info(message string, fields map[string]interface{}) {
+	entry := LogEntry{Timestamp: time.Now(), Level: "INFO", Message: message, Fields: fields}
+	data, _ := json.Marshal(entry)
+	if l.file != nil {
+		l.file.Write(append(data, '\n'))
 	}
 }
 
-func (l *TraceLogger) LogSpan(ctx context.Context, operation string, startTime time.Time, fields map[string]interface{}) {
+// Multi-Output Logger
+type Logger interface {
+	Info(message string, fields map[string]interface{})
+}
+
+type FileLogger struct {
+	*StructuredLogger
+}
+
+func NewFileLogger(filename string) *FileLogger {
+	f, _ := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	sl := NewStructuredLogger()
+	sl.SetOutput(f)
+	return &FileLogger{StructuredLogger: sl}
+}
+
+type ConsoleLogger struct {
+	*StructuredLogger
+}
+
+func NewConsoleLogger() *ConsoleLogger {
+	return &ConsoleLogger{StructuredLogger: NewStructuredLogger()}
+}
+
+type MultiLogger struct {
+	loggers []Logger
+}
+
+func NewMultiLogger(loggers ...Logger) *MultiLogger {
+	return &MultiLogger{loggers: loggers}
+}
+
+func (ml *MultiLogger) Info(message string, fields map[string]interface{}) {
+	for _, l := range ml.loggers {
+		l.Info(message, fields)
+	}
+}
+
+// Performance Logger
+type PerformanceLogger struct {
+	logger *StructuredLogger
+}
+
+func NewPerformanceLogger() *PerformanceLogger {
+	return &PerformanceLogger{logger: NewStructuredLogger()}
+}
+
+func (l *PerformanceLogger) Performance(operation string, startTime time.Time, fields map[string]interface{}) {
 	duration := time.Since(startTime)
-	
-	traceID := ctx.Value(TraceIDKey)
-	if traceID == nil {
-		traceID = generateTraceID()
-		ctx = WithTraceID(ctx, traceID.(string))
-	}
-	
 	allFields := MergeFields(fields, map[string]interface{}{
-		"operation": operation,
-		"duration":  duration.String(),
+		"operation":   operation,
+		"duration":    duration.String(),
 		"duration_ms": duration.Milliseconds(),
-		"span_type": "operation",
 	})
-	
-	if duration > 100*time.Millisecond {
-		l.WarnContext(ctx, "Slow operation detected", allFields)
-	} else {
-		l.InfoContext(ctx, "Operation completed", allFields)
-	}
+	l.logger.Info("Operation completed", allFields)
 }
 
-func (l *TraceLogger) LogError(ctx context.Context, operation string, err error, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"operation": operation,
-		"error":     err.Error(),
-		"error_type": fmt.Sprintf("%T", err),
-	})
-	
-	l.ErrorContext(ctx, "Operation failed", allFields)
+// Fixed ValidationError struct
+type ValidationError struct {
+	Field        string
+	ErrorMessage string
+	ErrorCode    string
 }
 
-// RequestLogger for HTTP request logging
-type RequestLogger struct {
-	*ContextualLogger
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("Validation error on %s: %s", e.Field, e.ErrorMessage)
 }
 
-func NewRequestLogger() *RequestLogger {
-	return &RequestLogger{
-		ContextualLogger: NewContextualLogger(),
-	}
+func (e *ValidationError) Code() string {
+	return e.ErrorCode
 }
 
-func (l *RequestLogger) LogRequest(ctx context.Context, method, path, remoteAddr string, headers map[string][]string) {
-	fields := map[string]interface{}{
-		"method":      method,
-		"path":        path,
-		"remote_addr": remoteAddr,
-		"user_agent":  getUserAgent(headers),
-		"content_type": getContentType(headers),
-	}
-	
-	l.InfoContext(ctx, "HTTP request started", fields)
-}
-
-func (l *RequestLogger) LogResponse(ctx context.Context, statusCode int, duration time.Duration, responseSize int64) {
-	fields := map[string]interface{}{
-		"status_code":   statusCode,
-		"duration":       duration.String(),
-		"duration_ms":   duration.Milliseconds(),
-		"response_size": responseSize,
-	}
-	
-	level := LevelInfo
-	if statusCode >= 400 {
-		level = LevelWarn
-	}
-	if statusCode >= 500 {
-		level = LevelError
-	}
-	
-	switch level {
-	case LevelWarn:
-		l.WarnContext(ctx, "HTTP request completed", fields)
-	case LevelError:
-		l.ErrorContext(ctx, "HTTP request completed", fields)
-	default:
-		l.InfoContext(ctx, "HTTP request completed", fields)
-	}
-}
-
-// BusinessLogger for business events
-type BusinessLogger struct {
-	*ContextualLogger
-}
-
-func NewBusinessLogger() *BusinessLogger {
-	return &BusinessLogger{
-		ContextualLogger: NewContextualLogger(),
-	}
-}
-
-func (l *BusinessLogger) LogUserAction(ctx context.Context, action string, target string, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type": "user_action",
-		"action":     action,
-		"target":     target,
-	})
-	
-	l.InfoContext(ctx, "User action performed", allFields)
-}
-
-func (l *BusinessLogger) LogBusinessEvent(ctx context.Context, eventType string, entity string, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type": "business_event",
-		"business_event_type": eventType,
-		"entity":     entity,
-	})
-	
-	l.InfoContext(ctx, "Business event occurred", allFields)
-}
-
-func (l *BusinessLogger) LogTransaction(ctx context.Context, transactionID string, amount float64, currency string, status string, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type":      "transaction",
-		"transaction_id":  transactionID,
-		"amount":          amount,
-		"currency":        currency,
-		"status":          status,
-	})
-	
-	l.InfoContext(ctx, "Transaction processed", allFields)
-}
-
-// SecurityLogger for security events
-type SecurityLogger struct {
-	*ContextualLogger
-}
-
-func NewSecurityLogger() *SecurityLogger {
-	return &SecurityLogger{
-		ContextualLogger: NewContextualLogger(),
-	}
-}
-
-func (l *SecurityLogger) LogAuthentication(ctx context.Context, userID string, success bool, method string, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type": "authentication",
-		"user_id":    userID,
-		"success":    success,
-		"method":     method,
-	})
-	
-	if success {
-		l.InfoContext(ctx, "Authentication successful", allFields)
-	} else {
-		l.WarnContext(ctx, "Authentication failed", allFields)
-	}
-}
-
-func (l *SecurityLogger) LogAuthorization(ctx context.Context, userID string, resource string, action string, allowed bool, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type": "authorization",
-		"user_id":    userID,
-		"resource":   resource,
-		"action":     action,
-		"allowed":    allowed,
-	})
-	
-	if allowed {
-		l.InfoContext(ctx, "Authorization granted", allFields)
-	} else {
-		l.WarnContext(ctx, "Authorization denied", allFields)
-	}
-}
-
-func (l *SecurityLogger) LogSecurityEvent(ctx context.Context, eventType string, severity string, fields map[string]interface{}) {
-	allFields := MergeFields(fields, map[string]interface{}{
-		"event_type": "security",
-		"security_event_type": eventType,
-		"severity":   severity,
-	})
-	
-	switch severity {
-	case "high", "critical":
-		l.ErrorContext(ctx, "Security event detected", allFields)
-	case "medium":
-		l.WarnContext(ctx, "Security event detected", allFields)
-	default:
-		l.InfoContext(ctx, "Security event detected", allFields)
-	}
-}
-
-// Utility functions
-func generateTraceID() string {
-	return fmt.Sprintf("trace_%d", time.Now().UnixNano())
-}
-
-func getUserAgent(headers map[string][]string) string {
-	if userAgents, exists := headers["User-Agent"]; exists && len(userAgents) > 0 {
-		return userAgents[0]
-	}
-	return ""
-}
-
-func getContentType(headers map[string][]string) string {
-	if contentTypes, exists := headers["Content-Type"]; exists && len(contentTypes) > 0 {
-		return contentTypes[0]
-	}
-	return ""
-}
-
-// ErrorAwareLogger for better error handling
 type ErrorAwareLogger struct {
 	*ContextualLogger
 }
 
 func NewErrorAwareLogger() *ErrorAwareLogger {
-	return &ErrorAwareLogger{
-		ContextualLogger: NewContextualLogger(),
+	return &ErrorAwareLogger{ContextualLogger: NewContextualLogger()}
+}
+
+func (l *ErrorAwareLogger) Error(message string, fields map[string]interface{}) {
+	l.ContextualLogger.StructuredLogger.Error(message, fields)
+}
+
+// Main Runner
+func main() {
+	fmt.Println("=== 1. Basic & Structured Logging Demo ===")
+	structured := NewStructuredLogger()
+	structured.Info("User login", map[string]interface{}{
+		"user_id": "12345",
+		"ip":      "192.168.1.1",
+		"method":  "POST",
+	})
+
+	fmt.Println("\n=== 2. Contextual Logging Demo ===")
+	contextual := NewContextualLogger()
+	ctx := WithUserID(context.Background(), "user123")
+	ctx = WithRequestID(ctx, "req-456")
+	ctx = WithSessionID(ctx, "sess-789")
+	contextual.InfoContext(ctx, "Processing request", map[string]interface{}{
+		"action": "create_order",
+		"amount": 99.99,
+	})
+
+	fmt.Println("\n=== 3. Level Logging Demo ===")
+	levelLogger := NewLevelLogger(LevelWarn)
+	levelLogger.Debug("Debug message - skipped", nil)
+	levelLogger.Warn("Warning message - potential issue", nil)
+
+	fmt.Println("\n=== 4. Async Logging Demo ===")
+	asyncLogger := NewAsyncLogger(100)
+	for i := 1; i <= 3; i++ {
+		asyncLogger.Info("Async log entry", map[string]interface{}{"iteration": i})
 	}
-}
+	asyncLogger.Flush()
+	asyncLogger.Close()
 
-func (l *ErrorAwareLogger) ErrorContext(ctx context.Context, message string, fields map[string]interface{}) {
-	// Check if there's an error in fields and add more context
-	if err, ok := fields["error"]; ok {
-		if e, ok := err.(error); ok {
-			fields["error_type"] = fmt.Sprintf("%T", e)
-			fields["error_details"] = getErrorDetails(e)
-		}
+	fmt.Println("\n=== 5. Rotating Logs Demo ===")
+	rotLogger := NewRotatingLogger("app.log", 1024, 3)
+	rotLogger.Info("Log message for rotation test", map[string]interface{}{"data": "sample log data"})
+
+	fmt.Println("\n=== 6. Multi-Logger Demo ===")
+	multi := NewMultiLogger(NewConsoleLogger(), NewFileLogger("app.log"))
+	multi.Info("Logging simultaneously to console and file", map[string]interface{}{"status": "success"})
+
+	fmt.Println("\n=== 7. Error Aware Logging Demo ===")
+	errLogger := NewErrorAwareLogger()
+	vErr := &ValidationError{
+		Field:        "email",
+		ErrorMessage: "Invalid email format",
+		ErrorCode:    "INVALID_EMAIL",
 	}
-	
-	l.ContextualLogger.ErrorContext(ctx, message, fields)
-}
+	errLogger.Error("Validation failed", map[string]interface{}{
+		"error": vErr.Error(),
+		"code":  vErr.Code(),
+	})
 
-func getErrorDetails(err error) map[string]interface{} {
-	details := make(map[string]interface{})
-	
-	// Add stack trace if available
-	if typeErr, ok := err.(interface{ StackTrace() []string }); ok {
-		details["stack_trace"] = typeErr.StackTrace()
-	}
-	
-	// Add error code if available
-	if codedErr, ok := err.(interface{ Code() string }); ok {
-		details["error_code"] = codedErr.Code()
-	}
-	
-	return details
-}
-
-// ValidationError example
-type ValidationError struct {
-	Field   string
-	Message string
-	Code    string
-}
-
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("Validation error on %s: %s", e.Field, e.Message)
-}
-
-func (e *ValidationError) Code() string {
-	return e.Code
+	fmt.Println("\n=== 8. Performance Logging Demo ===")
+	perf := NewPerformanceLogger()
+	start := time.Now()
+	time.Sleep(30 * time.Millisecond)
+	perf.Performance("Database query", start, map[string]interface{}{
+		"query": "SELECT * FROM users WHERE id = 1",
+		"rows":  1,
+	})
 }

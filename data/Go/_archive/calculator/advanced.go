@@ -1,26 +1,10 @@
-package calculator
+package main
 
 import (
 	"fmt"
 	"math"
 	"math/big"
-	"strconv"
-	"strings"
 )
-
-// Advanced provides advanced mathematical operations
-type Advanced struct {
-	scientific *Scientific
-	statistics *Statistics
-}
-
-// NewAdvanced creates a new advanced calculator
-func NewAdvanced() *Advanced {
-	return &Advanced{
-		scientific: NewScientific(),
-		statistics: NewStatistics(),
-	}
-}
 
 // BigNumber represents arbitrary precision numbers
 type BigNumber struct {
@@ -70,6 +54,9 @@ func (bn *BigNumber) Divide(other *BigNumber) (*BigNumber, error) {
 
 // Power raises a big number to an integer power
 func (bn *BigNumber) Power(exp int) *BigNumber {
+	if exp == 0 {
+		return &BigNumber{value: big.NewFloat(1)}
+	}
 	result := new(big.Float).Copy(bn.value)
 	for i := 1; i < exp; i++ {
 		result.Mul(result, bn.value)
@@ -113,22 +100,21 @@ func NewMatrixFromData(data [][]float64) (*Matrix, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("matrix data cannot be empty")
 	}
-	
+
 	rows := len(data)
 	cols := len(data[0])
-	
-	// Validate all rows have same length
+
 	for i, row := range data {
 		if len(row) != cols {
 			return nil, fmt.Errorf("row %d has %d columns, expected %d", i, len(row), cols)
 		}
 	}
-	
+
 	matrix := NewMatrix(rows, cols)
 	for i := range data {
 		copy(matrix.data[i], data[i])
 	}
-	
+
 	return matrix, nil
 }
 
@@ -154,30 +140,14 @@ func (m *Matrix) Add(other *Matrix) (*Matrix, error) {
 	if m.rows != other.rows || m.cols != other.cols {
 		return nil, fmt.Errorf("matrix dimensions must match for addition")
 	}
-	
+
 	result := NewMatrix(m.rows, m.cols)
 	for i := 0; i < m.rows; i++ {
 		for j := 0; j < m.cols; j++ {
 			result.data[i][j] = m.data[i][j] + other.data[i][j]
 		}
 	}
-	
-	return result, nil
-}
 
-// Subtract subtracts two matrices
-func (m *Matrix) Subtract(other *Matrix) (*Matrix, error) {
-	if m.rows != other.rows || m.cols != other.cols {
-		return nil, fmt.Errorf("matrix dimensions must match for subtraction")
-	}
-	
-	result := NewMatrix(m.rows, m.cols)
-	for i := 0; i < m.rows; i++ {
-		for j := 0; j < m.cols; j++ {
-			result.data[i][j] = m.data[i][j] - other.data[i][j]
-		}
-	}
-	
 	return result, nil
 }
 
@@ -187,7 +157,7 @@ func (m *Matrix) Multiply(other *Matrix) (*Matrix, error) {
 		return nil, fmt.Errorf("matrix dimensions incompatible for multiplication: %dx%d * %dx%d",
 			m.rows, m.cols, other.rows, other.cols)
 	}
-	
+
 	result := NewMatrix(m.rows, other.cols)
 	for i := 0; i < m.rows; i++ {
 		for j := 0; j < other.cols; j++ {
@@ -198,7 +168,7 @@ func (m *Matrix) Multiply(other *Matrix) (*Matrix, error) {
 			result.data[i][j] = sum
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -218,7 +188,7 @@ func (m *Matrix) Determinant() (float64, error) {
 	if m.rows != m.cols {
 		return 0, fmt.Errorf("determinant only defined for square matrices")
 	}
-	
+
 	return m.determinantRecursive(), nil
 }
 
@@ -226,25 +196,25 @@ func (m *Matrix) determinantRecursive() float64 {
 	if m.rows == 1 {
 		return m.data[0][0]
 	}
-	
+
 	if m.rows == 2 {
 		return m.data[0][0]*m.data[1][1] - m.data[0][1]*m.data[1][0]
 	}
-	
+
 	det := 0.0
 	for col := 0; col < m.cols; col++ {
 		cofactor := m.getCofactor(0, col)
-		cofactorDet, _ := cofactor.determinantRecursive()
+		cofactorDet := cofactor.determinantRecursive()
 		det += math.Pow(-1, float64(col)) * m.data[0][col] * cofactorDet
 	}
-	
+
 	return det
 }
 
 func (m *Matrix) getCofactor(row, col int) *Matrix {
 	result := NewMatrix(m.rows-1, m.cols-1)
 	resultRow := 0
-	
+
 	for i := 0; i < m.rows; i++ {
 		if i == row {
 			continue
@@ -259,35 +229,8 @@ func (m *Matrix) getCofactor(row, col int) *Matrix {
 		}
 		resultRow++
 	}
-	
-	return result
-}
 
-// Identity creates an identity matrix
-func Identity(size int) *Matrix {
-	result := NewMatrix(size, size)
-	for i := 0; i < size; i++ {
-		result.data[i][i] = 1
-	}
 	return result
-}
-
-// String returns string representation
-func (m *Matrix) String() string {
-	var sb strings.Builder
-	
-	for i := 0; i < m.rows; i++ {
-		sb.WriteString("[")
-		for j := 0; j < m.cols; j++ {
-			sb.WriteString(fmt.Sprintf("%8.2f", m.data[i][j]))
-			if j < m.cols-1 {
-				sb.WriteString(" ")
-			}
-		}
-		sb.WriteString("]\n")
-	}
-	
-	return sb.String()
 }
 
 // ComplexNumber represents a complex number
@@ -296,12 +239,10 @@ type ComplexNumber struct {
 	Imag float64
 }
 
-// NewComplex creates a new complex number
 func NewComplex(real, imag float64) *ComplexNumber {
 	return &ComplexNumber{Real: real, Imag: imag}
 }
 
-// Add adds two complex numbers
 func (c *ComplexNumber) Add(other *ComplexNumber) *ComplexNumber {
 	return &ComplexNumber{
 		Real: c.Real + other.Real,
@@ -309,37 +250,12 @@ func (c *ComplexNumber) Add(other *ComplexNumber) *ComplexNumber {
 	}
 }
 
-// Subtract subtracts two complex numbers
-func (c *ComplexNumber) Subtract(other *ComplexNumber) *ComplexNumber {
-	return &ComplexNumber{
-		Real: c.Real - other.Real,
-		Imag: c.Imag - other.Imag,
-	}
-}
-
-// Multiply multiplies two complex numbers
 func (c *ComplexNumber) Multiply(other *ComplexNumber) *ComplexNumber {
 	real := c.Real*other.Real - c.Imag*other.Imag
 	imag := c.Real*other.Imag + c.Imag*other.Real
 	return &ComplexNumber{Real: real, Imag: imag}
 }
 
-// Conjugate returns the complex conjugate
-func (c *ComplexNumber) Conjugate() *ComplexNumber {
-	return &ComplexNumber{Real: c.Real, Imag: -c.Imag}
-}
-
-// Magnitude returns the magnitude (absolute value)
-func (c *ComplexNumber) Magnitude() float64 {
-	return math.Sqrt(c.Real*c.Real + c.Imag*c.Imag)
-}
-
-// Phase returns the phase angle in radians
-func (c *ComplexNumber) Phase() float64 {
-	return math.Atan2(c.Imag, c.Real)
-}
-
-// String returns string representation
 func (c *ComplexNumber) String() string {
 	if c.Imag >= 0 {
 		return fmt.Sprintf("%.2f + %.2fi", c.Real, c.Imag)
@@ -347,328 +263,134 @@ func (c *ComplexNumber) String() string {
 	return fmt.Sprintf("%.2f - %.2fi", c.Real, -c.Imag)
 }
 
-// ToGoComplex converts to Go's complex128
-func (c *ComplexNumber) ToGoComplex() complex128 {
-	return complex(c.Real, c.Imag)
-}
-
 // Polynomial represents a polynomial
 type Polynomial struct {
-	coefficients []float64 // coefficients[0] is constant term
+	coefficients []float64
 }
 
-// NewPolynomial creates a new polynomial
 func NewPolynomial(coefficients []float64) *Polynomial {
-	// Remove trailing zeros
 	for len(coefficients) > 1 && coefficients[len(coefficients)-1] == 0 {
 		coefficients = coefficients[:len(coefficients)-1]
 	}
-	
 	return &Polynomial{coefficients: coefficients}
 }
 
-// Evaluate evaluates the polynomial at x
 func (p *Polynomial) Evaluate(x float64) float64 {
 	result := 0.0
 	power := 1.0
-	
 	for _, coeff := range p.coefficients {
 		result += coeff * power
 		power *= x
 	}
-	
 	return result
 }
 
-// Degree returns the degree of the polynomial
 func (p *Polynomial) Degree() int {
+	if len(p.coefficients) == 0 {
+		return 0
+	}
 	return len(p.coefficients) - 1
 }
 
-// Add adds two polynomials
-func (p *Polynomial) Add(other *Polynomial) *Polynomial {
-	maxDegree := max(p.Degree(), other.Degree())
-	result := make([]float64, maxDegree+1)
-	
-	for i := 0; i <= maxDegree; i++ {
-		if i < len(p.coefficients) {
-			result[i] += p.coefficients[i]
-		}
-		if i < len(other.coefficients) {
-			result[i] += other.coefficients[i]
-		}
-	}
-	
-	return NewPolynomial(result)
-}
-
-// Multiply multiplies two polynomials
-func (p *Polynomial) Multiply(other *Polynomial) *Polynomial {
-	result := make([]float64, p.Degree()+other.Degree()+1)
-	
-	for i, coeff1 := range p.coefficients {
-		for j, coeff2 := range other.coefficients {
-			result[i+j] += coeff1 * coeff2
-		}
-	}
-	
-	return NewPolynomial(result)
-}
-
-// Derivative returns the derivative of the polynomial
 func (p *Polynomial) Derivative() *Polynomial {
 	if p.Degree() == 0 {
 		return NewPolynomial([]float64{0})
 	}
-	
+
 	result := make([]float64, p.Degree())
 	for i := 1; i < len(p.coefficients); i++ {
 		result[i-1] = float64(i) * p.coefficients[i]
 	}
-	
+
 	return NewPolynomial(result)
 }
 
-// Integral returns the indefinite integral of the polynomial
-func (p *Polynomial) Integral() *Polynomial {
-	result := make([]float64, p.Degree()+2)
-	result[0] = 0 // Constant of integration
-	
-	for i, coeff := range p.coefficients {
-		result[i+1] = coeff / float64(i+1)
-	}
-	
-	return NewPolynomial(result)
+// Numerical Methods
+type Advanced struct{}
+
+func NewAdvanced() *Advanced {
+	return &Advanced{}
 }
 
-// String returns string representation
-func (p *Polynomial) String() string {
-	if len(p.coefficients) == 0 {
-		return "0"
-	}
-	
-	var terms []string
-	
-	for i := len(p.coefficients) - 1; i >= 0; i-- {
-		coeff := p.coefficients[i]
-		if coeff == 0 {
-			continue
-		}
-		
-		var term string
-		
-		switch i {
-		case 0:
-			term = fmt.Sprintf("%.2f", coeff)
-		case 1:
-			if coeff == 1 {
-				term = "x"
-			} else if coeff == -1 {
-				term = "-x"
-			} else {
-				term = fmt.Sprintf("%.2fx", coeff)
-			}
-		default:
-			if coeff == 1 {
-				term = fmt.Sprintf("x^%v", i)
-			} else if coeff == -1 {
-				term = fmt.Sprintf("-x^%v", i)
-			} else {
-				term = fmt.Sprintf("%.2fx^%v", coeff, i)
-			}
-		}
-		
-		if len(terms) > 0 && coeff > 0 {
-			term = " + " + term
-		} else if len(terms) > 0 && coeff < 0 {
-			term = " - " + term[1:] // Remove minus sign
-		}
-		
-		terms = append(terms, term)
-	}
-	
-	if len(terms) == 0 {
-		return "0"
-	}
-	
-	result := strings.Join(terms, "")
-	if strings.HasPrefix(result, " + ") {
-		result = result[3:]
-	}
-	
-	return result
-}
-
-// Numerical methods
-
-// NewtonRaphson finds root using Newton-Raphson method
 func (a *Advanced) NewtonRaphson(f func(float64) float64, df func(float64) float64, x0, tolerance float64, maxIterations int) (float64, error) {
 	x := x0
-	
 	for i := 0; i < maxIterations; i++ {
 		fx := f(x)
 		dfx := df(x)
-		
+
 		if dfx == 0 {
 			return 0, fmt.Errorf("derivative zero at iteration %d", i)
 		}
-		
+
 		xNew := x - fx/dfx
-		
 		if math.Abs(xNew-x) < tolerance {
 			return xNew, nil
 		}
-		
 		x = xNew
 	}
-	
 	return 0, fmt.Errorf("maximum iterations reached")
 }
 
-// Bisection finds root using bisection method
-func (a *Advanced) Bisection(f func(float64) float64, a, b, tolerance float64, maxIterations int) (float64, error) {
-	fa := f(a)
-	fb := f(b)
-	
-	if fa*fb > 0 {
-		return 0, fmt.Errorf("function must have different signs at endpoints")
-	}
-	
-	for i := 0; i < maxIterations; i++ {
-		c := (a + b) / 2
-		fc := f(c)
-		
-		if math.Abs(fc) < tolerance || (b-a)/2 < tolerance {
-			return c, nil
-		}
-		
-		if fa*fc < 0 {
-			b = c
-			fb = fc
-		} else {
-			a = c
-			fa = fc
-		}
-	}
-	
-	return (a + b) / 2, nil
-}
-
-// NumericalIntegration performs numerical integration using Simpson's rule
-func (a *Advanced) NumericalIntegration(f func(float64) float64, a, b float64, n int) (float64, error) {
+func (a *Advanced) NumericalIntegration(f func(float64) float64, start, end float64, n int) (float64, error) {
 	if n <= 0 || n%2 != 0 {
 		return 0, fmt.Errorf("n must be positive and even: %d", n)
 	}
-	
-	h := (b - a) / float64(n)
-	sum := f(a) + f(b)
-	
+
+	h := (end - start) / float64(n)
+	sum := f(start) + f(end)
+
 	for i := 1; i < n; i++ {
-		x := a + float64(i)*h
+		x := start + float64(i)*h
 		if i%2 == 0 {
 			sum += 2 * f(x)
 		} else {
 			sum += 4 * f(x)
 		}
 	}
-	
+
 	return sum * h / 3, nil
 }
 
-// NumericalDifferentiation performs numerical differentiation
-func (a *Advanced) NumericalDifferentiation(f func(float64) float64, x, h float64) float64 {
-	return (f(x+h) - f(x-h)) / (2 * h)
-}
+func main() {
+	fmt.Println("=== Advanced Mathematics Demo ===")
 
-// Helper functions
+	// 1. Big Number Arithmetic
+	big1, _ := NewBigNumber("12345678901234567890.12345")
+	big2, _ := NewBigNumber("98765432109876543210.98765")
+	fmt.Printf("Big Sum: %s\n", big1.Add(big2).String())
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
+	// 2. Matrix Operations
+	m1, _ := NewMatrixFromData([][]float64{
+		{1, 2},
+		{3, 4},
+	})
+	m2, _ := NewMatrixFromData([][]float64{
+		{5, 6},
+		{7, 8},
+	})
+	prod, _ := m1.Multiply(m2)
+	det, _ := prod.Determinant()
+	fmt.Printf("Matrix Product Determinant: %.2f\n", det)
 
-// Advanced mathematical functions
+	// 3. Complex Numbers
+	c1 := NewComplex(3, 4)
+	c2 := NewComplex(1, 2)
+	fmt.Printf("Complex Product: %s\n", c1.Multiply(c2).String())
 
-// Gamma function approximation (Stirling's formula)
-func (a *Advanced) Gamma(x float64) float64 {
-	if x < 0.5 {
-		// Use reflection formula: Γ(x) = π / (sin(πx) * Γ(1-x))
-		return math.Pi / (math.Sin(math.Pi*x) * a.Gamma(1-x))
-	}
-	
-	// Stirling's approximation
-	if x > 50 {
-		return math.Sqrt(2*math.Pi/x) * math.Pow(x/math.E, x)
-	}
-	
-	// Use Lanczos approximation for better accuracy
-	// Simplified version here
-	return a.lanczosGamma(x)
-}
+	// 4. Polynomials
+	poly := NewPolynomial([]float64{1, 2, 3}) // 1 + 2x + 3x^2
+	fmt.Printf("P(2): %.2f\n", poly.Evaluate(2))
+	fmt.Printf("P'(x) Degree: %d\n", poly.Derivative().Degree())
 
-func (a *Advanced) lanczosGamma(x float64) float64 {
-	// Simplified Lanczos approximation
-	// In practice, this would use precomputed coefficients
-	p := []float64{
-		676.5203681218851,
-		-1259.1392167224028,
-		771.32342877765313,
-		-176.61502916214059,
-		12.507343278686905,
-		-0.13857109526572012,
-		9.9843695780195716e-6,
-		1.5056327351493116e-7,
-	}
-	
-	g := 7
-	if x < 0.5 {
-		return math.Pi / (math.Sin(math.Pi*x) * a.lanczosGamma(1-x))
-	}
-	
-	x -= 1
-	t := p[0]
-	for i := 1; i < len(p); i++ {
-		t += p[i] / (x + float64(i))
-	}
-	
-	w := x + float64(g) + 0.5
-	sqrt2pi := math.Sqrt(2 * math.Pi)
-	
-	return sqrt2pi * math.Pow(w, x+0.5) * math.Exp(-w) * t
-}
+	// 5. Numerical Methods
+	adv := NewAdvanced()
+	// Find root of f(x) = x^2 - 4 using Newton-Raphson
+	f := func(x float64) float64 { return x*x - 4 }
+	df := func(x float64) float64 { return 2 * x }
+	root, _ := adv.NewtonRaphson(f, df, 1.0, 1e-6, 100)
+	fmt.Printf("Newton-Raphson Root of (x^2 - 4): %.4f\n", root)
 
-// Beta function
-func (a *Advanced) Beta(x, y float64) float64 {
-	return a.Gamma(x) * a.Gamma(y) / a.Gamma(x+y)
-}
-
-// Error function
-func (a *Advanced) Erf(x float64) float64 {
-	// Abramowitz and Stegun approximation
-	const (
-		a1 = 0.254829592
-		a2 = -0.284496736
-		a3 = 1.421413741
-		a4 = -1.453152027
-		a5 = 1.061405429
-		p  = 0.3275911
-	)
-	
-	sign := 1.0
-	if x < 0 {
-		sign = -1.0
-		x = -x
-	}
-	
-	t := 1.0 / (1.0 + p*x)
-	y := 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*math.Exp(-x*x)
-	
-	return sign * y
-}
-
-// Complementary error function
-func (a *Advanced) Erfc(x float64) float64 {
-	return 1.0 - a.Erf(x)
+	// Integrate f(x) = x^2 from 0 to 3 (exact: 9.0)
+	integral, _ := adv.NumericalIntegration(func(x float64) float64 { return x * x }, 0, 3, 100)
+	fmt.Printf("Numerical Integral of x^2 on [0, 3]: %.4f\n", integral)
 }
