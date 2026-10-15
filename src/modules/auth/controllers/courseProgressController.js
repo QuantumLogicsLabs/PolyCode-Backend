@@ -198,7 +198,8 @@ async function getPublicDashboard(req, res) {
       return res.status(404).json({ error: "User not found" });
     }
     const dashboard = await courseProgress.getLearnDashboard(user._id);
-    // Public: course list + XP/time/streak aggregates; no engagement counts.
+    // Public: course list + XP/time/streak aggregates + per-day lesson counts;
+    // no engagement counts.
     const overview = { ...(dashboard.overview || {}) };
     delete overview.lessonsRead;
     delete overview.quizAnswered;
@@ -214,6 +215,7 @@ async function getPublicDashboard(req, res) {
         delete next.challengeFails;
         return next;
       }),
+      activity: dashboard.activity || [],
     });
   } catch (error) {
     res.status(statusFromError(error)).json({ error: error.message });

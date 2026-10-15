@@ -6,6 +6,7 @@ const dailyXpController = require("./controllers/dailyXpController");
 const oopsCppProgressController = require("./controllers/oopsCppProgressController");
 const courseProgressController = require("./controllers/courseProgressController");
 const lessonAnnotationController = require("./controllers/lessonAnnotationController");
+const reviewController = require("./controllers/reviewController");
 const requireAuth = require("../../middleware/requireAuth");
 
 // ── User Auth Routes ─────────────────────────────────────────────────────────
@@ -146,6 +147,28 @@ router.post(
   "/learn/progress/merge",
   requireAuth,
   courseProgressController.mergeLocal,
+);
+
+// ── Learn: Review my mistakes ────────────────────────────────────────────────
+
+/** GET /api/auth/learn/review/due?courseId=a,b — missed MCQs due today */
+router.get("/learn/review/due", requireAuth, reviewController.listDue);
+
+/** GET /api/auth/learn/review/count?courseId=a,b — badge count */
+router.get("/learn/review/count", requireAuth, reviewController.countDue);
+
+/** POST /api/auth/learn/review/:itemId/answer — body { correct } */
+router.post(
+  "/learn/review/:itemId/answer",
+  requireAuth,
+  reviewController.answer,
+);
+
+/** POST /api/auth/learn/review/:itemId/dismiss — question changed, drop it */
+router.post(
+  "/learn/review/:itemId/dismiss",
+  requireAuth,
+  reviewController.dismiss,
 );
 
 router.get(

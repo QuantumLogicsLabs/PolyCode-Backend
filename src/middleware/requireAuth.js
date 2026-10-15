@@ -13,6 +13,9 @@ function requireAuth(req, res, next) {
     const token = authHeader.split(" ")[1];
     const decoded = verifyAccessToken(token);
     req.userId = decoded.id;
+    // Handlers use these to hand back a renewed token before this one ages out.
+    req.auth = decoded;
+    req.authToken = token;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });

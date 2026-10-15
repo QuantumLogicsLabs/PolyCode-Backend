@@ -80,7 +80,7 @@ Bearer JWT required unless noted:
 | GET/PUT | `/api/auth/learn/:courseId/annotations/:lessonId?tab=` | Private annotations |
 | POST | `/api/auth/learn/annotations/merge` | Merge local annotations on login |
 | GET | `/api/auth/username/:username/learn/progress` | Public courses (no code/notes) |
-| GET | `/api/auth/username/:username/learn/dashboard` | Public dashboard (no engagement counts) |
+| GET | `/api/auth/username/:username/learn/dashboard` | Public dashboard + activity graph day counts (no engagement counts) |
 | GET | `/api/auth/polycoder/:username/progress` | Full polycoder aggregate |
 | GET/POST | `/api/auth/progress/daily-xp*` | Daily XP heatmap |
 

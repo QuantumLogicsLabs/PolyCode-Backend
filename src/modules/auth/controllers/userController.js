@@ -4,7 +4,18 @@ const {
   isDriveConfigured,
   streamDriveFile,
 } = require("../../../services/googleDriveService");
-const { signAccessToken } = require("../../../utils/jwt");
+const {
+  signAccessToken,
+  renewAccessToken,
+} = require("../../../utils/jwt");
+
+/**
+ * Only a genuinely missing account ends a session; every other failure here is
+ * infrastructure (Mongo cold start, timeout) and must not log the user out.
+ */
+function isMissingUserError(error) {
+  return /user not found|account no longer exists/i.test(error?.message || "");
+}
 
 /**
  * Helper: create a signed JWT for a user
@@ -242,10 +253,26 @@ async function getFollowing(req, res) {
 async function getMe(req, res) {
   try {
     const user = await userService.getUserById(req.userId);
-    res.json({ user });
+    // Sliding session: renew before the token ages out so a signed-in user
+    // stays signed in until they explicitly log out.
+    const token = renewAccessToken(req.auth);
+    res.json(token ? { user, token } : { user });
   } catch (error) {
     console.error("Get me error:", error.message);
-    res.status(404).json({ error: error.message || "User not found" });
+
+    if (isMissingUserError(error)) {
+      // The account is gone — the client should end the session.
+      return res
+        .status(401)
+        .json({ error: "Account no longer exists", code: "SESSION_INVALID" });
+    }
+
+    // Database hiccup / cold start: the token is still good, so do NOT answer
+    // with a status that would sign the user out. 503 means "ask again".
+    return res.status(503).json({
+      error: "Could not reach the account service. Please try again.",
+      code: "SESSION_UNAVAILABLE",
+    });
   }
 }
 

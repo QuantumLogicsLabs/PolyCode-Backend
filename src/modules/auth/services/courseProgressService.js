@@ -1,5 +1,6 @@
 const { assertCourseId } = require("../constants/courseIds");
 const dailyXpService = require("./dailyXpService");
+const reviewService = require("./reviewService");
 const {
   findLearnerDoc,
   getOrCreateLearnerDoc,
@@ -52,23 +53,51 @@ function emptyCourseProgress(userId, courseId) {
   );
 }
 
+const MAX_SAVE_ATTEMPTS = 8;
+
+/**
+ * Saves that hit the same learner doc at once (lesson complete, engagement,
+ * code autosave, time tracking) fail with a VersionError, or with a duplicate
+ * key when two requests create the doc together. Both are safe to retry,
+ * because every attempt reloads the doc and reapplies the mutator to it.
+ */
+function isRetryableSaveError(error) {
+  return error?.name === "VersionError" || error?.code === 11000;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function withCourse(userId, courseId, mutator, { createIfMissing = true } = {}) {
   const id = assertCourseId(courseId);
-  let learner = null;
 
-  if (createIfMissing) {
-    learner = await getOrCreateLearnerDoc(userId);
-  } else {
-    learner = await findLearnerDoc(userId);
-    if (!learner) {
-      return emptyCourseProgress(userId, id);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      let learner = null;
+
+      if (createIfMissing) {
+        learner = await getOrCreateLearnerDoc(userId);
+      } else {
+        learner = await findLearnerDoc(userId);
+        if (!learner) {
+          return emptyCourseProgress(userId, id);
+        }
+      }
+
+      const course = ensureCourseEntry(learner, id);
+      await mutator(course, learner);
+      await saveLearnerDoc(learner);
+      return courseToProgress(course, userId);
+    } catch (error) {
+      if (!isRetryableSaveError(error) || attempt >= MAX_SAVE_ATTEMPTS) {
+        throw error;
+      }
+      // Growing, random backoff so the colliding requests spread out instead
+      // of retrying in lockstep.
+      await wait(Math.floor(Math.random() * 30 * 2 ** Math.min(attempt, 5)));
     }
   }
-
-  const course = ensureCourseEntry(learner, id);
-  await mutator(course, learner);
-  await saveLearnerDoc(learner);
-  return courseToProgress(course, userId);
 }
 
 /**
@@ -135,6 +164,16 @@ function countQuizCorrect(quizAttempts = {}) {
   return correct;
 }
 
+const MAX_QUESTION_HASH_LENGTH = 64;
+
+// Short fingerprint of the question the learner saw, so Review can tell when
+// the question at this position has since been edited or replaced.
+function normalizeQuestionHash(value) {
+  if (typeof value !== "string") return null;
+  const hash = value.trim();
+  return hash && hash.length <= MAX_QUESTION_HASH_LENGTH ? hash : null;
+}
+
 function normalizeQuizAttemptValue(value) {
   if (value == null) return null;
   if (typeof value === "number") {
@@ -142,6 +181,7 @@ function normalizeQuizAttemptValue(value) {
       selectedIndex: value,
       correct: null,
       answeredAt: null,
+      questionHash: null,
     };
   }
   if (typeof value === "object") {
@@ -158,17 +198,42 @@ function normalizeQuizAttemptValue(value) {
           ? null
           : Boolean(value.correct),
       answeredAt: value.answeredAt || null,
+      questionHash: normalizeQuestionHash(value.questionHash),
     };
   }
   return null;
 }
 
+function hasAnswer(attempt) {
+  return attempt?.selectedIndex !== null && attempt?.selectedIndex !== undefined;
+}
+
+/**
+ * Only the learner's first answer to each question counts. Once a question
+ * has an answer, later picks (a second click, "Solve again", an old tab, a
+ * login merge) can't replace it. The one exception: an older answer saved
+ * without `correct` gets it filled in when the same option is sent again.
+ */
 function mergeQuizAttempts(existing = {}, incoming = {}) {
   const next = { ...(existing || {}) };
   for (const [key, raw] of Object.entries(incoming || {})) {
     const normalized = normalizeQuizAttemptValue(raw);
     if (!normalized) continue;
     const prev = normalizeQuizAttemptValue(next[key]);
+    if (hasAnswer(prev)) {
+      const fillsMissingResult =
+        prev.correct === null &&
+        normalized.correct !== null &&
+        normalized.selectedIndex === prev.selectedIndex;
+      if (fillsMissingResult) {
+        next[key] = {
+          ...prev,
+          correct: normalized.correct,
+          questionHash: prev.questionHash || normalized.questionHash,
+        };
+      }
+      continue;
+    }
     next[key] = {
       selectedIndex:
         normalized.selectedIndex !== null && normalized.selectedIndex !== undefined
@@ -179,6 +244,7 @@ function mergeQuizAttempts(existing = {}, incoming = {}) {
           ? normalized.correct
           : prev?.correct ?? null,
       answeredAt: normalized.answeredAt || prev?.answeredAt || new Date(),
+      questionHash: normalized.questionHash || prev?.questionHash || null,
     };
   }
   return next;
@@ -196,7 +262,7 @@ function upsertEngagementEntry(progress, payload = {}) {
 
   let entry = progress.lessonEngagement.find((item) => item.lessonId === lessonId);
   if (!entry) {
-    entry = {
+    progress.lessonEngagement.push({
       lessonId,
       read: false,
       confidence: "",
@@ -205,8 +271,10 @@ function upsertEngagementEntry(progress, payload = {}) {
       challengeLastResult: "",
       lastTab: "",
       updatedAt: new Date(),
-    };
-    progress.lessonEngagement.push(entry);
+    });
+    // Mongoose stores a copy of the pushed object, so edit the stored entry,
+    // otherwise the first write for a new lesson is lost.
+    entry = progress.lessonEngagement[progress.lessonEngagement.length - 1];
   }
 
   if (payload.read !== undefined) {
@@ -240,16 +308,42 @@ function upsertEngagementEntry(progress, payload = {}) {
   return entry;
 }
 
+/**
+ * Queues wrong first answers for Review once the progress save has gone
+ * through. A failure here only logs: the answer itself is already saved, and
+ * the backfill script can add the item later.
+ */
+async function scheduleReviews(userId, progress, lessonIds) {
+  if (!progress?.courseId || lessonIds.length === 0) return;
+  try {
+    await reviewService.scheduleMissedQuizzes(
+      userId,
+      progress.courseId,
+      progress.lessonEngagement,
+      lessonIds,
+    );
+  } catch (error) {
+    console.warn("Review scheduling failed:", error.message);
+  }
+}
+
 async function upsertLessonEngagement(userId, courseId, payload = {}) {
-  return withCourse(
+  const progress = await withCourse(
     userId,
     courseId,
     async (course) => {
       upsertEngagementEntry(course, payload);
       touchStreak(course);
     },
-    { createIfMissing: false },
+    // A quiz answer is a real result, so save it even if this is the
+    // learner's first progress write. Other engagement saves still don't
+    // create a learner doc on their own.
+    { createIfMissing: Boolean(payload.quizAttempts) },
   );
+  if (payload.quizAttempts) {
+    await scheduleReviews(userId, progress, [String(payload.lessonId).trim()]);
+  }
+  return progress;
 }
 
 async function completeLesson(userId, courseId, lesson) {
@@ -374,7 +468,7 @@ async function addTime(userId, courseId, minutes) {
 }
 
 async function mergeLocalProgress(userId, courseId, localPayload = {}) {
-  return withCourse(userId, courseId, async (course, learner) => {
+  const progress = await withCourse(userId, courseId, async (course, learner) => {
     const completedMap = localPayload.completedMap || {};
     const savedCodeMap = localPayload.savedCodeMap || {};
     const notesMap = localPayload.notesMap || {};
@@ -474,6 +568,11 @@ async function mergeLocalProgress(userId, courseId, localPayload = {}) {
     recalcTotalXp(course);
     touchStreak(course);
   });
+  const quizLessonIds = Object.entries(localPayload.engagementMap || {})
+    .filter(([, engagement]) => engagement?.quizAttempts)
+    .map(([lessonId]) => lessonId);
+  await scheduleReviews(userId, progress, quizLessonIds);
+  return progress;
 }
 
 function dayKey(date = new Date()) {
@@ -585,6 +684,13 @@ async function getLearnDashboard(userId) {
       challengeFails,
     },
     courses: courseRows,
+    // Per-day lesson counts for the profile activity graph (UTC date keys).
+    activity: (dailyXp?.days || [])
+      .filter((day) => day.lessonsCompleted > 0)
+      .map((day) => ({
+        date: day.date,
+        lessonsCompleted: day.lessonsCompleted,
+      })),
   };
 }
 

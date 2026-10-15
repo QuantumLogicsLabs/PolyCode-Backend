@@ -9,6 +9,7 @@ const {
     executeJavaScriptCode,
     executeJavaCode,
     executeCppCode,
+    executeCCode,
     executeRubyCode,
 } = require('../services/executionService');
 
@@ -39,6 +40,30 @@ router.post('/run-cpp', async (req, res) => {
         return res.json(result);
     } catch (error) {
         console.error('C++ run error:', error);
+        return res.status(500).json({
+            stdout: '',
+            stderr: error.message,
+            error: error.message,
+            exitCode: 1,
+        });
+    }
+});
+
+// POST compile/run ad-hoc C code for lesson challenges (compiled with gcc, not g++)
+router.post('/run-c', async (req, res) => {
+    try {
+        const { code, stdin = '' } = req.body || {};
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ message: 'C code is required' });
+        }
+
+        const result = await executeCCode(
+            code,
+            typeof stdin === 'string' ? stdin : '',
+        );
+        return res.json(result);
+    } catch (error) {
+        console.error('C run error:', error);
         return res.status(500).json({
             stdout: '',
             stderr: error.message,

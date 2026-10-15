@@ -13,9 +13,9 @@ function getGroqConfig() {
 
   return {
     apiKey,
-    primaryModel: process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile",
+    primaryModel: process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-120b",
     fallbackModel:
-      process.env.GROQ_FALLBACK_MODEL?.trim() || "llama-3.1-8b-instant",
+      process.env.GROQ_FALLBACK_MODEL?.trim() || "openai/gpt-oss-20b",
   };
 }
 
