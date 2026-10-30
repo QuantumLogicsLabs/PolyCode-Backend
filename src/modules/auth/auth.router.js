@@ -228,6 +228,19 @@ router.post(
   lessonAnnotationController.mergeAnnotations,
 );
 
+/** POST /api/auth/learn/annotation-images — { imageBase64 } → { image: { imageId } } */
+router.post(
+  "/learn/annotation-images",
+  requireAuth,
+  lessonAnnotationController.uploadImage,
+);
+
+/** GET /api/auth/learn/annotation-images/:imageId — image bytes (public, random key) */
+router.get(
+  "/learn/annotation-images/:imageId",
+  lessonAnnotationController.getImage,
+);
+
 // ── Learn: OOP C++ Progress Routes (legacy aliases → shared course API) ──
 
 router.get(

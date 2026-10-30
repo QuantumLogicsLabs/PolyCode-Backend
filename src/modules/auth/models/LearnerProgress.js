@@ -103,6 +103,19 @@ const labelSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const annotationImageRefSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    x: { type: Number, default: 0 },
+    y: { type: Number, default: 0 },
+    width: { type: Number, default: 240 },
+    height: { type: Number, default: 180 },
+    // Key of an AnnotationImage document (bytes are stored there).
+    imageId: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const annotationEntrySchema = new mongoose.Schema(
   {
     courseId: { type: String, required: true },
@@ -114,6 +127,7 @@ const annotationEntrySchema = new mongoose.Schema(
     },
     strokes: { type: [strokeSchema], default: [] },
     labels: { type: [labelSchema], default: [] },
+    images: { type: [annotationImageRefSchema], default: [] },
     updatedAt: { type: Date, default: Date.now },
   },
   { _id: false },

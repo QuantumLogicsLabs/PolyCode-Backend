@@ -11,6 +11,7 @@ const {
     executeCppCode,
     executeCCode,
     executeRubyCode,
+    executeDartCode,
 } = require('../services/executionService');
 
 // GET today's challenge
@@ -85,6 +86,27 @@ router.post('/run-python', async (req, res) => {
         return res.json(result);
     } catch (error) {
         console.error('Python run error:', error);
+        return res.status(500).json({
+            stdout: '',
+            stderr: error.message,
+            error: error.message,
+            exitCode: 1,
+        });
+    }
+});
+
+// POST run plain Dart for Flutter course examples
+router.post('/run-dart', async (req, res) => {
+    try {
+        const { code } = req.body || {};
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ message: 'Dart code is required' });
+        }
+
+        const result = await executeDartCode(code);
+        return res.json(result);
+    } catch (error) {
+        console.error('Dart run error:', error);
         return res.status(500).json({
             stdout: '',
             stderr: error.message,

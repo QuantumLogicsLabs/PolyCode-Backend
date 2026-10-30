@@ -933,6 +933,153 @@ async function executeRubyCode(code, stdin = "") {
   });
 }
 
+const DART_MISSING_MESSAGE =
+  "No Dart runtime found on server. Install the Dart or Flutter SDK, or set DART_EXECUTABLE.";
+
+let resolvedDartCommand = null;
+
+/**
+ * On Windows the Flutter SDK only puts `dart.bat` on PATH, which spawn cannot
+ * run without a shell — find the real dart.exe inside the bundled SDK instead.
+ * @returns {Promise<string[]>} Extra dart.exe paths to probe
+ */
+async function findWindowsDartExecutables() {
+  if (process.platform !== "win32") return [];
+
+  let output = "";
+  try {
+    const child = await runSpawn("where", ["dart"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    child.stdout.on("data", (chunk) => {
+      output += chunk.toString();
+    });
+    await waitForChildExit(child, PROBE_TIMEOUT_MS);
+  } catch (_) {
+    return [];
+  }
+
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((found) =>
+      /\.exe$/i.test(found)
+        ? found
+        : path.join(path.dirname(found), "cache", "dart-sdk", "bin", "dart.exe"),
+    );
+}
+
+/**
+ * Resolve Dart command on system
+ * @returns {Promise<string>} Dart executable
+ */
+async function resolveDartCommand() {
+  if (resolvedDartCommand) return resolvedDartCommand;
+
+  const candidates = [
+    process.env.DART_EXECUTABLE,
+    "dart",
+    ...(await findWindowsDartExecutables()),
+  ];
+
+  for (const candidate of candidates.filter(Boolean)) {
+    try {
+      const probe = await runSpawn(candidate, ["--version"], {
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      await waitForChildExit(probe, PROBE_TIMEOUT_MS);
+      resolvedDartCommand = candidate;
+      return resolvedDartCommand;
+    } catch (_) {
+      // Try next candidate
+    }
+  }
+  throw new Error(DART_MISSING_MESSAGE);
+}
+
+/**
+ * Execute a plain Dart program (Flutter UI code needs a device, not `dart`).
+ * @param {string} code - Dart source with a main() entry point
+ * @returns {Promise<Object>} Execution result with stdout, stderr, error, exitCode
+ */
+async function executeDartCode(code) {
+  let command;
+  try {
+    command = await resolveDartCommand();
+  } catch (e) {
+    return { stdout: "", stderr: e.message, error: e.message, exitCode: 1 };
+  }
+
+  const runtimeDir = await getWritableRuntimeDir();
+  const filename = `run_${crypto.randomBytes(8).toString("hex")}.dart`;
+  const filepath = path.join(runtimeDir, filename);
+
+  await fs.writeFile(filepath, code, "utf8");
+
+  return new Promise(async (resolve, reject) => {
+    let child;
+    try {
+      child = await runSpawn(command, [filename], {
+        cwd: runtimeDir,
+        env: { ...process.env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (e) {
+      await fs.unlink(filepath).catch(() => {});
+      reject(e);
+      return;
+    }
+
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, RUN_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout = appendWithCap(stdout, chunk.toString());
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = appendWithCap(stderr, chunk.toString());
+    });
+
+    child.on("error", async (e) => {
+      clearTimeout(timer);
+      await fs.unlink(filepath).catch(() => {});
+      reject(e);
+    });
+
+    child.on("close", async (code) => {
+      clearTimeout(timer);
+      await fs.unlink(filepath).catch(() => {});
+      // Compiler errors mention the random temp file — show a stable name.
+      const cleanStderr = stderr.trimEnd().split(filename).join("main.dart");
+      const exitCode = timedOut ? 1 : code;
+      // Timers and streams can keep a Dart program alive forever — keep what
+      // it printed so the learner still sees the output before the cut-off.
+      const timedOutMessage = [
+        stdout.trimEnd(),
+        `Stopped after ${RUN_TIMEOUT_MS / 1000}s — this program keeps running (for example a Timer.periodic or a loop that never ends).`,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      resolve({
+        stdout: stdout.trimEnd(),
+        stderr: cleanStderr,
+        error: timedOut
+          ? timedOutMessage
+          : exitCode === 0
+            ? null
+            : cleanStderr || `Dart exited with code ${exitCode}`,
+        exitCode,
+      });
+    });
+  });
+}
+
 module.exports = {
   executePythonCode,
   executeJavaScriptCode,
@@ -940,6 +1087,7 @@ module.exports = {
   executeCppCode,
   executeCCode,
   executeRubyCode,
+  executeDartCode,
   runSpawn,
   resolvePythonCommand,
 };

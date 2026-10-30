@@ -4,8 +4,10 @@ const {
   getOrCreateLearnerDoc,
   saveLearnerDoc,
 } = require("./learnerProgressStore");
+const { KEY_RE: IMAGE_KEY_RE } = require("./annotationImageService");
 
 const MAX_PAYLOAD_BYTES = 100 * 1024;
+const MAX_IMAGES = 50;
 
 function estimateSize(payload) {
   return Buffer.byteLength(JSON.stringify(payload || {}), "utf8");
@@ -48,7 +50,21 @@ function sanitizeAnnotation(raw = {}) {
         text: String(label?.text || "").slice(0, 2000),
       }))
     : [];
-  return { strokes, labels };
+  // Only uploaded images (imageId) are stored; inline data URLs stay local.
+  const images = Array.isArray(raw.images)
+    ? raw.images
+        .filter((image) => IMAGE_KEY_RE.test(String(image?.imageId || "")))
+        .slice(0, MAX_IMAGES)
+        .map((image, index) => ({
+          id: String(image.id || `image-${index}`).slice(0, 64),
+          x: Number(image.x) || 0,
+          y: Number(image.y) || 0,
+          width: Math.min(4000, Math.max(24, Number(image.width) || 240)),
+          height: Math.min(4000, Math.max(24, Number(image.height) || 180)),
+          imageId: String(image.imageId),
+        }))
+    : [];
+  return { strokes, labels, images };
 }
 
 function fitWithinLimit(payload) {
@@ -65,6 +81,7 @@ function fitWithinLimit(payload) {
         downsampleStroke(stroke, stride),
       ),
       labels: current.labels,
+      images: current.images,
     };
     size = estimateSize(current);
     stride *= 2;
@@ -110,6 +127,7 @@ async function getAnnotation(userId, courseId, lessonId, tab = "theory") {
       tab: cleanTab,
       strokes: [],
       labels: [],
+      images: [],
       updatedAt: null,
     };
   }
@@ -120,6 +138,7 @@ async function getAnnotation(userId, courseId, lessonId, tab = "theory") {
     tab: doc.tab,
     strokes: doc.strokes || [],
     labels: doc.labels || [],
+    images: doc.images || [],
     updatedAt: doc.updatedAt || null,
   };
 }
@@ -145,12 +164,14 @@ async function putAnnotation(userId, courseId, lessonId, tab, payload = {}) {
       tab: cleanTab,
       strokes: fitted.data.strokes,
       labels: fitted.data.labels,
+      images: fitted.data.images,
       updatedAt: new Date(),
     });
     doc = learner.annotations[learner.annotations.length - 1];
   } else {
     doc.strokes = fitted.data.strokes;
     doc.labels = fitted.data.labels;
+    doc.images = fitted.data.images;
     doc.updatedAt = new Date();
   }
 
@@ -162,6 +183,7 @@ async function putAnnotation(userId, courseId, lessonId, tab, payload = {}) {
     tab: doc.tab,
     strokes: doc.strokes || [],
     labels: doc.labels || [],
+    images: doc.images || [],
     updatedAt: doc.updatedAt || null,
     downsampled: fitted.downsampled,
     size: fitted.size,
@@ -177,7 +199,7 @@ async function mergeLocalAnnotations(userId, items = []) {
         item.courseId,
         item.lessonId,
         item.tab,
-        { strokes: item.strokes, labels: item.labels },
+        { strokes: item.strokes, labels: item.labels, images: item.images },
       );
       results.push({ ok: true, ...saved });
     } catch (error) {
