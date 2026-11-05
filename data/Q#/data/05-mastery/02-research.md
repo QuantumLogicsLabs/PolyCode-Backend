@@ -1,41 +1,25 @@
-# Lesson 02 — Research Topics
+# Lesson 02 — Quantum Research Methods and Evidence
 
-**Module 05 · Mastery · Lesson 02 of 04**
-
+**Module 05 · Mastery · Lesson 02 of 06**
 
 ## Learning objectives
 
-- Understand **research topics** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Form a falsifiable hypothesis about an algorithm or implementation.
+- Design controls that separate algorithmic effects from sampling and backend effects.
+- Report reproducible evidence with uncertainty and known limitations.
 
-## Overview
+## Experimental discipline
 
-Research Topics is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Predefine metrics, baselines, sample sizes, and exclusion rules. Use exact classical enumeration for tiny instances as a correctness oracle, not as a scalable comparator. Compare distributions where the algorithm is probabilistic; report confidence intervals and account for parameter-search or multiple-comparison bias.
 
-## Key concepts
+Preserve failed runs and configuration changes. Record the full toolchain and backend assumptions, and separate a hypothesis from a result. Independent reruns should reproduce the conclusion within stated uncertainty.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Research Topics — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Design an experiment to evaluate whether a QAOA implementation improves solution quality on a chosen family. Specify instance generation, classical baseline, shot budget, optimizer budget, randomization, statistical analysis, and stopping rules before collecting data.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+Another researcher can reproduce the protocol and determine whether the evidence supports, weakens, or fails to test the hypothesis.
 
----
-
-**Next:** Continue to lesson 03 in this module.
+**Next:** [Noise-aware algorithm design](03-noise-aware-design.md)

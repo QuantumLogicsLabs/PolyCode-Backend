@@ -1,57 +1,40 @@
 # PowerShell Learning Guide
 
-A comprehensive learning resource for mastering PowerShell from beginner to advanced levels.
+A comprehensive learning resource for mastering PowerShell from beginner through production-ready module engineering.
 
 ## 📚 Course Structure
 
-### 🎯 Getting Started
-- **[01-Basics](docs/01-basics.md)** - Introduction to PowerShell, cmdlets, and the PowerShell console
-- **[02-Variables and Data Types](docs/02-variables-and-data-types.md)** - Understanding variables, data types, and type casting
-- **[03-Operators](docs/03-operators.md)** - Arithmetic, comparison, logical, and special operators
+Follow the numbered [certificate course](data/README.md) in order:
 
-### 🔧 Core Programming Concepts
-- **[04-Conditional Statements](docs/04-conditional-statements.md)** - If/Else, Switch statements
-- **[05-Loops](docs/05-loops.md)** - For, While, Do-While, ForEach loops
-- **[06-Functions](docs/06-functions.md)** - Creating and using functions, parameters, return values
+1. Beginner — core syntax, control flow, functions, pipelines, and objects
+2. Intermediate — modules, remoting, error handling, scripting, regex, and jobs
+3. Advanced — desired state, APIs, security, performance, testing, and automation
+4. Professional — Azure, directory services, DevOps, reporting, and enterprise scripts
+5. Mastery — automation, tool building, capstones, career planning, [production-ready modules](data/05-mastery/05-production-modules.md), and [cross-platform CI](data/05-mastery/06-cross-platform-ci.md)
 
-### 📊 Data Structures
-- **[07-Arrays and Collections](docs/07-arrays-and-collections.md)** - Working with arrays, lists, and other collections
-- **[08-Hashtables and Objects](docs/08-hashtables-and-objects.md)** - Hashtables, custom objects, and PSCustomObject
-
-### 🗂️ File System and Administration
-- **[09-File System Operations](docs/09-file-system.md)** - File and directory management
-- **[10-Modules and Scripts](docs/10-modules-and-scripts.md)** - Script organization, modules, and scope
-
-### 🛡️ Advanced Topics
-- **[11-Error Handling](docs/11-error-handling.md)** - Try/Catch, error handling best practices
-- **[12-Advanced Topics](docs/12-advanced-topics.md)** - Remoting, jobs, workflows, DSC
+Start with the [course roadmap](data/00-certification/00-roadmap.md) and complete the [final assessment](data/00-certification/02-final-assessment.md) after Mastery.
 
 ## 📁 Directory Structure
 
 ```
-PowerShell-Learning-Guide/
-├── README.md                    # This file
-├── docs/                        # Documentation files
-│   ├── 01-basics.md
-│   ├── 02-variables-and-data-types.md
-│   ├── 03-operators.md
-│   ├── 04-conditional-statements.md
-│   ├── 05-loops.md
-│   ├── 06-functions.md
-│   ├── 07-arrays-and-collections.md
-│   ├── 08-hashtables-and-objects.md
-│   ├── 09-file-system.md
-│   ├── 10-modules-and-scripts.md
-│   ├── 11-error-handling.md
-│   └── 12-advanced-topics.md
-├── scripts/                     # Example scripts
-│   ├── basic-examples.ps1
-│   ├── intermediate-examples.ps1
-│   └── advanced-examples.ps1
-└── examples/                    # Practical examples and projects
-    ├── system-administration/
-    ├── automation/
-    └── reporting/
+Powershell/
+├── README.md
+└── data/
+    ├── 00-certification/
+    ├── 01-beginner/
+    ├── 02-intermediate/
+    ├── 03-advanced/
+    ├── 04-professional/
+    └── 05-mastery/
+        ├── 01-advanced-automation.md
+        ├── 02-tool-building.md
+        ├── 03-capstone-projects.md
+        ├── 04-career-path.md
+        ├── 05-production-modules.md
+        ├── 06-cross-platform-ci.md
+        └── examples/
+            ├── OperationsToolkit/
+            └── ci/powershell-module-ci.yml
 ```
 
 ## 🚀 Quick Start
@@ -71,24 +54,24 @@ PowerShell-Learning-Guide/
    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
-4. **Start learning**: Begin with [01-Basics](docs/01-basics.md) and work through each section sequentially
+4. **Start learning**: Begin with the [course roadmap](data/00-certification/00-roadmap.md) and work through each module sequentially
 
 ## 🎯 Learning Path
 
-### Beginner (Weeks 1-2)
-- Complete sections 01-06
-- Practice with basic scripts in the `scripts/` directory
-- Focus on understanding cmdlets and basic programming concepts
+Progress through Beginner, Intermediate, Advanced, Professional, and Mastery. The roadmap estimates 8–14 weeks at 5–8 hours per week; adjust the pace to match your practice time.
 
-### Intermediate (Weeks 3-4)
-- Complete sections 07-10
-- Work on file system operations and script organization
-- Start building practical automation scripts
+## Interactive Courses
 
-### Advanced (Weeks 5-6)
-- Complete sections 11-12
-- Learn error handling and advanced PowerShell features
-- Work on complex projects in the `examples/` directory
+The PowerShell catalog includes six interactive courses. Every chapter has six lessons, and each lesson includes a focused practice challenge:
+
+| Course | Chapters | Lessons |
+| --- | ---: | ---: |
+| PowerShell Fundamentals | 6 | 36 |
+| PowerShell Scripting | 6 | 36 |
+| PowerShell Administration | 6 | 36 |
+| PowerShell Projects | 6 | 36 |
+| PowerShell Security & Compliance | 6 | 36 |
+| PowerShell Cloud Automation | 6 | 36 |
 
 ## 💡 Tips for Learning
 

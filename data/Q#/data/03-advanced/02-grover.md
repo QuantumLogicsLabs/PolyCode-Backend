@@ -1,41 +1,25 @@
-# Lesson 02 — Grover in Q#
+# Lesson 02 — Grover Search Under Realistic Constraints
 
-**Module 03 · Advanced · Lesson 02 of 07**
-
+**Module 03 · Advanced · Lesson 02 of 06**
 
 ## Learning objectives
 
-- Understand **grover in q#** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Construct the Grover iterate from an oracle and a reflection.
+- Select iteration counts for known solution counts and recognize overshoot.
+- Account for oracle synthesis, sampling, and verification cost.
 
-## Overview
+## Cost and stopping
 
-Grover in Q# is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+For `N` equally likely candidates and `M` marked items, the good-state angle satisfies `sin^2(theta) = M/N`. After `r` iterations, ideal success probability is `sin^2((2r+1)theta)`. This explains both the approximate quadratic improvement and the periodic drop after the optimum. When `M` is unknown, fixed iteration counts do not retain the same guarantee.
 
-## Key concepts
+The total cost includes synthesizing and calling the oracle, state preparation, circuit depth, and enough repetitions to verify success. A black-box query advantage can disappear when the oracle is expensive.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Grover in Q# — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Implement a small reversible predicate, test it on every basis input, and sweep `r` across the first success peak and beyond. Compare empirical success with the formula. Include `M=0`, `M=1`, and multiple marked states; define behavior for no solution rather than assuming a match exists.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can calculate an iteration estimate from `N` and `M`, and explain when the estimate is invalid or operationally misleading.
 
----
-
-**Next:** Continue to lesson 03 in this module.
+**Next:** [Quantum Fourier transform and phase](03-quantum-fft.md)

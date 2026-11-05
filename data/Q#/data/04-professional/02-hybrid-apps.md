@@ -1,41 +1,25 @@
-# Lesson 02 — Hybrid Applications
+# Lesson 02 — Hybrid Applications and Variational Workloads
 
 **Module 04 · Professional · Lesson 02 of 06**
 
-
 ## Learning objectives
 
-- Understand **hybrid applications** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Design a bounded classical–quantum optimization loop.
+- Account for shot noise, queue latency, and optimizer query budget.
+- Define cancellation, retry, and convergence behavior explicitly.
 
-## Overview
+## Loop architecture
 
-Hybrid Applications is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+A hybrid workload has a classical parameter update, a quantum circuit evaluation, and classical aggregation. Make the circuit interface deterministic for a given parameter/input configuration even though its measured samples are stochastic. Batch compatible evaluations when supported; cache only results whose full configuration and sampling policy match.
 
-## Key concepts
+Choose stopping criteria before running: iteration limit, objective tolerance, uncertainty threshold, and wall-clock budget. Detect invalid probabilities, backend failures, and optimizer non-convergence instead of returning a success-shaped default.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Hybrid Applications — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Extend the one-layer QAOA experiment with a classical optimizer. Record objective estimates and confidence intervals per iteration, bound the total circuit evaluations, and compare at least two stopping rules. Test a simulated backend failure and verify the host reports it distinctly from a poor objective value.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can estimate the workload’s total shot and evaluation budget before submission and identify failure modes at both the host and quantum-runner boundary.
 
----
-
-**Next:** Continue to lesson 03 in this module.
+**Next:** [Performance and resource-aware optimization](03-performance.md)

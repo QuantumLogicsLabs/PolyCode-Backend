@@ -76,6 +76,7 @@ if not _POLYCODE_MPL_OK:
 `;
 
 let resolvedPythonCommand = null;
+let resolvedPowerShellCommand = null;
 
 function appendWithCap(current, chunk) {
   if (current.length >= MAX_EXEC_OUTPUT_BYTES) return current;
@@ -83,6 +84,25 @@ function appendWithCap(current, chunk) {
   return next.length > MAX_EXEC_OUTPUT_BYTES
     ? next.slice(0, MAX_EXEC_OUTPUT_BYTES)
     : next;
+}
+
+function normalizePowerShellOutput(output = "") {
+  const trimmed = output.trim();
+  if (!trimmed.startsWith("#< CLIXML")) return trimmed;
+
+  const messages = Array.from(
+    trimmed.matchAll(/<S S="Error">([\s\S]*?)<\/S>/g),
+    ([, message]) =>
+      message
+        .replace(/_x000D__x000A_/g, "\n")
+        .replace(/_x000A_/g, "\n")
+        .replace(/_x000D_/g, "\r")
+        .replace(/_x005F_/g, "_"),
+  ).join("\n");
+  return (
+    messages.replace(/\n{2,}/g, "\n").trim() ||
+    "PowerShell reported an execution error."
+  );
 }
 
 /**
@@ -97,6 +117,118 @@ function runSpawn(command, args = [], options = {}) {
     const child = spawn(command, args, options);
     child.once("error", reject);
     child.once("spawn", () => resolve(child));
+  });
+}
+
+async function resolvePowerShellCommand() {
+  if (resolvedPowerShellCommand) return resolvedPowerShellCommand;
+
+  const candidates =
+    process.platform === "win32" ? ["pwsh", "powershell.exe"] : ["pwsh"];
+  for (const command of candidates) {
+    try {
+      const probe = await runSpawn(
+        command,
+        ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "$PSVersionTable.PSVersion.ToString()"],
+        { stdio: ["ignore", "pipe", "pipe"] },
+      );
+      const exitCode = await new Promise((resolve, reject) => {
+        probe.once("exit", resolve);
+        probe.once("error", reject);
+      });
+      if (exitCode === 0) {
+        resolvedPowerShellCommand = command;
+        return command;
+      }
+    } catch (_) {
+      // Try the next supported PowerShell executable.
+    }
+  }
+  throw new Error(
+    "No PowerShell runtime found on server. Install PowerShell 7 (pwsh) or Windows PowerShell.",
+  );
+}
+
+async function executePowerShellCode(code) {
+  const command = await resolvePowerShellCommand();
+  const wrappedCode = [
+    "$ProgressPreference = 'SilentlyContinue'",
+    "$ErrorActionPreference = 'Stop'",
+    "try {",
+    code,
+    "} catch {",
+    "  [Console]::Error.WriteLine($_.ToString())",
+    "  exit 1",
+    "}",
+  ].join("\n");
+  const encodedCode = Buffer.from(wrappedCode, "utf16le").toString("base64");
+
+  return new Promise(async (resolve, reject) => {
+    let child;
+    try {
+      child = await runSpawn(
+        command,
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-OutputFormat",
+          "Text",
+          "-EncodedCommand",
+          encodedCode,
+        ],
+        {
+          cwd: os.tmpdir(),
+          env: { ...process.env, POWERSHELL_TELEMETRY_OPTOUT: "1" },
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, RUN_TIMEOUT_MS);
+
+    child.stdout.on("data", (chunk) => {
+      stdout = appendWithCap(stdout, chunk.toString());
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr = appendWithCap(stderr, chunk.toString());
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on("close", (exitCode) => {
+      clearTimeout(timer);
+      const outputText = normalizePowerShellOutput(stdout);
+      const errorText = normalizePowerShellOutput(stderr);
+      if (timedOut) {
+        resolve({
+          stdout: outputText,
+          stderr: errorText,
+          error: `PowerShell execution timed out after ${RUN_TIMEOUT_MS}ms`,
+          exitCode: 1,
+        });
+        return;
+      }
+      resolve({
+        stdout: outputText,
+        stderr: errorText,
+        error:
+          exitCode === 0
+            ? null
+            : errorText || `PowerShell exited with code ${exitCode}`,
+        exitCode,
+      });
+    });
   });
 }
 
@@ -940,6 +1072,7 @@ module.exports = {
   executeCppCode,
   executeCCode,
   executeRubyCode,
+  executePowerShellCode,
   runSpawn,
   resolvePythonCommand,
 };

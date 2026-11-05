@@ -1,41 +1,25 @@
-# Lesson 03 — Performance Tuning
+# Lesson 03 — Performance and Resource-Aware Optimization
 
 **Module 04 · Professional · Lesson 03 of 06**
 
-
 ## Learning objectives
 
-- Understand **performance tuning** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Optimize the circuit’s dominant cost rather than source-code appearance.
+- Compare gate count, depth, width, and measurement overhead.
+- Preserve semantics while applying compiler-aware transformations.
 
-## Overview
+## Measure before changing
 
-Performance Tuning is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Profile classical preprocessing separately from circuit execution and provider queue time. For a circuit, inspect depth as well as gate count: parallel gates can reduce depth, while connectivity constraints or decomposition can erase an apparent source-level improvement. Include ancilla allocation, reset, and measurement costs in the comparison.
 
-## Key concepts
+Treat compiler/resource-estimator output as tied to its exact target profile and assumptions. Validate every optimization against basis-state behavior or the appropriate probability distribution, and keep a baseline for regression comparison.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Performance Tuning — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Choose a circuit from the advanced module and compare two equivalent implementations. Record source-level operations, compiled resources, execution shots, and wall-clock components separately. Explain one tradeoff, such as lower depth at higher qubit count.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can justify an optimization with measured or estimated evidence and demonstrate that it preserves the intended behavior.
 
----
-
-**Next:** Continue to lesson 04 in this module.
+**Next:** [Team engineering and review](04-team-projects.md)

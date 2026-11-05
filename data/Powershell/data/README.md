@@ -17,7 +17,7 @@ A structured, numbered learning path from **beginner to mastery** — designed f
 | 02 | `02-intermediate` | Intermediate | 6 lessons |
 | 03 | `03-advanced` | Advanced | 7 lessons |
 | 04 | `04-professional` | Professional | 6 lessons |
-| 05 | `05-mastery` | Mastery | 4 lessons |
+| 05 | `05-mastery` | Mastery | 6 lessons |
 
 ## Legacy content
 

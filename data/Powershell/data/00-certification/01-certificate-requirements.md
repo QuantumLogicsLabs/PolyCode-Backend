@@ -12,7 +12,7 @@ Earn the **PolyCode Powershell Developer Certificate** by completing this course
 | 02 Intermediate | 6 |
 | 03 Advanced | 7 |
 | 04 Professional | 6 |
-| 05 Mastery | 4 |
+| 05 Mastery | 6 |
 
 ### 2. Hands-on projects
 

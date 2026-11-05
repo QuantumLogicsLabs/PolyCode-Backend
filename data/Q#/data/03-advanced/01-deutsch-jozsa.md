@@ -1,41 +1,29 @@
-# Lesson 01 — Deutsch-Jozsa
+# Lesson 01 — Deutsch–Jozsa: Promise, Oracle, and Evidence
 
-**Module 03 · Advanced · Lesson 01 of 07**
-
+**Module 03 · Advanced · Lesson 01 of 06**
 
 ## Learning objectives
 
-- Understand **deutsch-jozsa** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- State the constant-or-balanced promise precisely.
+- Derive how phase kickback and Hadamards produce the decision signal.
+- Compare query complexity with the practical cost of implementing the oracle.
 
-## Overview
+## Algorithm
 
-Deutsch-Jozsa is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+For a Boolean function `f : {0,1}^n -> {0,1}`, the promise is that `f` is either constant or balanced. Prepare the input in a uniform superposition and the target in `|->`; one coherent oracle call adds phase `(-1)^f(x)`. Applying Hadamards to the input yields all-zero exactly for the constant case and never for the balanced case in the ideal model.
 
-## Key concepts
+The one-query claim counts oracle calls, not the cost of building an arbitrary oracle. The promise problem is highly structured and does not imply a general exponential speedup on useful workloads.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Q# implementation outline
 
-## Example
+Separate state preparation, reversible bit oracle, phase-kickback target preparation, and final measurement. Test constant and balanced truth tables for small `n`. Reset every allocated qubit and keep measurement outside the oracle.
 
-```md
-// Deutsch-Jozsa — practice sketch
-// add your code here
-```
+## Lab
 
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Implement both promise classes for `n = 2`. Exhaustively verify each truth table and simulate the circuit. Add a deliberately non-promised function and document that the algorithm’s guarantee no longer applies.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can derive the all-zero amplitude as a sum over `(-1)^f(x)` and identify the promise as an essential precondition.
 
----
-
-**Next:** Continue to lesson 02 in this module.
+**Next:** [Grover search and iteration limits](02-grover.md)

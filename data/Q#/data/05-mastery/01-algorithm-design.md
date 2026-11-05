@@ -1,41 +1,25 @@
-# Lesson 01 — Algorithm Design
+# Lesson 01 — Research-Grade Quantum Algorithm Design
 
-**Module 05 · Mastery · Lesson 01 of 04**
-
+**Module 05 · Mastery · Lesson 01 of 06**
 
 ## Learning objectives
 
-- Understand **algorithm design** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Start from a precise computational problem and derive a quantum resource model.
+- Identify the oracle, data-loading, and readout costs hidden by asymptotic claims.
+- Compare the proposed quantum method with the strongest relevant classical baseline.
 
-## Overview
+## Design sequence
 
-Algorithm Design is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Specify input size, output, promise (if any), error tolerance, and success criterion. Identify which part of the task is accelerated and whether its data can be loaded efficiently. Derive query complexity, then account for state preparation, oracle synthesis, repetitions, error correction, and classical postprocessing.
 
-## Key concepts
+A quantum advantage claim needs a fair end-to-end comparison at matched accuracy and resource constraints. Simulator feasibility is not evidence of hardware feasibility, and asymptotic advantage does not establish a useful finite-size crossover.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Algorithm Design — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Choose Grover search, QFT-based period finding, or QAOA. Write a design memo with problem definition, assumptions, algorithm, full cost model, classical baseline, expected failure modes, and the smallest experiment that could falsify the central claim.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+Your proposal states what is accelerated, what is not, and which unmeasured cost could invalidate the conclusion.
 
----
-
-**Next:** Continue to lesson 02 in this module.
+**Next:** [Research methods and evidence](02-research.md)

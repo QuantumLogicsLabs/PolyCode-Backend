@@ -341,11 +341,11 @@ A structured, numbered learning path from **beginner to mastery** — designed f
 
 | Module | Folder | Level | Content |
 |--------|--------|-------|---------|
-${rows.map((r) => `| ${r[0]} | \`${r[1]}\` | ${r[2]} | ${r[3]} |`).join("\n")}
+${rows.map((r) => "| " + r[0] + " | `" + r[1] + "` | " + r[2] + " | " + r[3] + " |").join("\n")}
 
 ## Legacy content
 
-Older material was moved to **`../_archive/`** (not shown in Docs Hub). It is kept for reference only.
+Older material was moved to **\`../_archive/\`** (not shown in Docs Hub). It is kept for reference only.
 
 Follow the numbered modules above for the certificate learning path.
 

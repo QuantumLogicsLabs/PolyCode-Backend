@@ -11,6 +11,7 @@ const {
     executeCppCode,
     executeCCode,
     executeRubyCode,
+    executePowerShellCode,
 } = require('../services/executionService');
 
 // GET today's challenge
@@ -109,6 +110,30 @@ router.post('/run-ruby', async (req, res) => {
         return res.json(result);
     } catch (error) {
         console.error('Ruby run error:', error);
+        return res.status(500).json({
+            stdout: '',
+            stderr: error.message,
+            error: error.message,
+            exitCode: 1,
+        });
+    }
+});
+
+// POST run PowerShell for authenticated lesson examples and challenges.
+router.post('/run-powershell', requireAuth, async (req, res) => {
+    try {
+        const { code } = req.body || {};
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ message: 'PowerShell code is required' });
+        }
+        if (code.length > 20000) {
+            return res.status(400).json({ message: 'PowerShell code must be 20,000 characters or fewer' });
+        }
+
+        const result = await executePowerShellCode(code);
+        return res.json(result);
+    } catch (error) {
+        console.error('PowerShell run error:', error);
         return res.status(500).json({
             stdout: '',
             stderr: error.message,

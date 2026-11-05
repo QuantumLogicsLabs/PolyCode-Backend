@@ -1,11 +1,11 @@
 # PolyCode Q# Certificate Course
 
-A structured, numbered learning path from **beginner to mastery** — designed for the PolyCode Docs Hub and certificate completion.
+A six-lesson-per-level path from **beginner to mastery**, designed to progress from Q# and quantum-state fundamentals to research-grade algorithm design and reproducible delivery.
 
 ## Start here
 
 1. Open **[00-certification / Course roadmap](00-certification/00-roadmap.md)**
-2. Begin **Module 01 — Beginner** and follow lessons in order (`01-slug.md`, `02-slug.md`, …)
+2. Complete all six lessons in each level in order (`01-slug.md` through `06-slug.md`)
 3. After Module 05, complete the **[final assessment](00-certification/02-final-assessment.md)**
 
 ## Course modules
@@ -13,11 +13,11 @@ A structured, numbered learning path from **beginner to mastery** — designed f
 | Module | Folder | Level | Content |
 |--------|--------|-------|---------|
 | 00 | `00-certification` | Overview | Roadmap, requirements, exam |
-| 01 | `01-beginner` | Beginner | 10 lessons |
+| 01 | `01-beginner` | Beginner | 6 lessons |
 | 02 | `02-intermediate` | Intermediate | 6 lessons |
-| 03 | `03-advanced` | Advanced | 7 lessons |
+| 03 | `03-advanced` | Advanced | 6 lessons |
 | 04 | `04-professional` | Professional | 6 lessons |
-| 05 | `05-mastery` | Mastery | 4 lessons |
+| 05 | `05-mastery` | Mastery | 6 lessons |
 
 ## Legacy content
 

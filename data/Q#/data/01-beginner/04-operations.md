@@ -1,41 +1,37 @@
-# Lesson 04 — Q# Operations
+# Lesson 04 — Q# Operations, Functions, and Data
 
-**Module 01 · Beginner · Lesson 04 of 10**
-
+**Module 01 · Beginner · Lesson 04 of 06**
 
 ## Learning objectives
 
-- Understand **q# operations** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Choose between a classical `function` and a quantum `operation`.
+- Use immutable bindings and typed arguments to make circuit intent explicit.
+- Package related classical data in a user-defined type.
 
-## Overview
+## Language patterns
 
-Q# Operations is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Functions compute classical values and cannot allocate or manipulate qubits. Operations may perform quantum actions and can call other operations. Prefer a function for preprocessing and postprocessing; keep state-changing gates in operations. Q# types such as `Int`, `Double`, `Bool`, `Result`, tuples, and arrays make interfaces explicit.
 
-## Key concepts
+```qsharp
+function Square(x : Int) : Int {
+    x * x
+}
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
-
-## Example
-
-```md
-// Q# Operations — practice sketch
-// add your code here
+operation PrepareBasis(bit : Bool, target : Qubit) : Unit {
+    if (bit) {
+        X(target);
+    }
+}
 ```
 
-## Exercise
+`Square` is classical. `PrepareBasis` acts on a qubit; its `Bool` input selects a preparation, not a way to inspect the qubit.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Define a small UDT for a problem configuration, then write one function that validates/transforms its classical fields and one operation that consumes the result to prepare a circuit. Keep quantum resources out of functions. Add boundary cases to the classical helper (including an empty or invalid configuration) and document the intended behavior.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can explain why a helper that applies `H` must be an operation, while a helper that computes a loop bound can be a function.
 
----
-
-**Next:** Continue to lesson 05 in this module.
+**Next:** [Qubit registers and safe lifetime](05-qubits.md)

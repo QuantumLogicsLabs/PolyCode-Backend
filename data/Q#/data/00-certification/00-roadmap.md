@@ -1,81 +1,76 @@
 # Q# Certificate Course — Learning Roadmap
 
-Welcome to the **PolyCode Q# Certificate Course**. Follow modules **01 → 05** in order, then complete the final assessment in **Module 00**.
+Follow the five six-lesson levels in order, then complete the final assessment. Each level builds on the previous one: language and state fundamentals → coherent algorithms → advanced circuits → professional execution → research-grade design.
 
-**Estimated time:** 8–14 weeks at 5–8 hours per week.
-
----
+**Estimated time:** 12–16 weeks at 5–8 hours per week. Completion requires implementation, testing, and analysis—not only reading.
 
 ## Module 00 — Certification
 
 | # | Lesson | Purpose |
 |---|--------|---------|
-| 00 | [Course roadmap](00-roadmap.md) | You are here |
-| 01 | [Certificate requirements](01-certificate-requirements.md) | Requirements |
-| 02 | [Final assessment](02-final-assessment.md) | Exam topics |
+| 00 | [Course roadmap](00-roadmap.md) | Learning sequence |
+| 01 | [Certificate requirements](01-certificate-requirements.md) | Completion criteria |
+| 02 | [Final assessment](02-final-assessment.md) | Integrated exam |
 
-## Module 01 — Beginner (Weeks 1–2)
+## Module 01 — Beginner
 
-| # | Lesson | Level |
-|---|--------|-------|
-| 01 | [Introduction to Q#](../01-beginner/01-introduction.md) | beginner |
-| 02 | [Quantum Concepts Review](../01-beginner/02-quantum-concepts.md) | beginner |
-| 03 | [Hello Quantum World](../01-beginner/03-hello-quantum.md) | beginner |
-| 04 | [Q# Operations](../01-beginner/04-operations.md) | beginner |
-| 05 | [Working with Qubits](../01-beginner/05-qubits.md) | beginner |
-| 06 | [Measurements in Q#](../01-beginner/06-measurements.md) | beginner |
-| 07 | [Functions and UDTs](../01-beginner/07-functions.md) | beginner |
-| 08 | [Control Flow](../01-beginner/08-control-flow.md) | beginner |
-| 09 | [Simulators](../01-beginner/09-simulators.md) | beginner |
-| 10 | [First Quantum Algorithm](../01-beginner/10-first-algorithm.md) | beginner |
+| # | Lesson |
+|---|--------|
+| 01 | [Q# as a Quantum Programming Language](../01-beginner/01-introduction.md) |
+| 02 | [Quantum States, Phase, and Measurement](../01-beginner/02-quantum-concepts.md) |
+| 03 | [Your First Qubit Program](../01-beginner/03-hello-quantum.md) |
+| 04 | [Q# Operations, Functions, and Data](../01-beginner/04-operations.md) |
+| 05 | [Qubit Registers and Safe Lifetime](../01-beginner/05-qubits.md) |
+| 06 | [Measurement, Reset, and Feedback](../01-beginner/06-measurements.md) |
 
-## Module 02 — Intermediate (Weeks 3–4)
+## Module 02 — Intermediate
 
-| # | Lesson | Level |
-|---|--------|-------|
-| 01 | [Oracle Functions](../02-intermediate/01-oracle-functions.md) | intermediate |
-| 02 | [Amplitude Amplification](../02-intermediate/02-amplitude-amplification.md) | intermediate |
-| 03 | [Entanglement in Q#](../02-intermediate/03-entanglement-qsharp.md) | intermediate |
-| 04 | [Testing Q# Programs](../02-intermediate/04-testing.md) | intermediate |
-| 05 | [C# Interop](../02-intermediate/05-interop-csharp.md) | intermediate |
-| 06 | [Resource Estimation](../02-intermediate/06-resource-estimation.md) | intermediate |
+| # | Lesson |
+|---|--------|
+| 01 | [Reversible Oracles and Phase Kickback](../02-intermediate/01-oracle-functions.md) |
+| 02 | [Entanglement and Multi-Qubit Structure](../02-intermediate/02-entanglement-qsharp.md) |
+| 03 | [Amplitude Amplification](../02-intermediate/03-amplitude-amplification.md) |
+| 04 | [Testing Quantum Programs](../02-intermediate/04-testing.md) |
+| 05 | [Resource Estimation and Feasibility](../02-intermediate/05-resource-estimation.md) |
+| 06 | [Q# and Host-Language Interoperability](../02-intermediate/06-interop-csharp.md) |
 
-## Module 03 — Advanced (Weeks 5–6)
+## Module 03 — Advanced
 
-| # | Lesson | Level |
-|---|--------|-------|
-| 01 | [Deutsch-Jozsa](../03-advanced/01-deutsch-jozsa.md) | advanced |
-| 02 | [Grover in Q#](../03-advanced/02-grover.md) | advanced |
-| 03 | [Quantum Fourier Transform](../03-advanced/03-quantum-fft.md) | advanced |
-| 04 | [Error Correction Intro](../03-advanced/04-error-correction.md) | advanced |
-| 05 | [Azure Quantum Workspace](../03-advanced/05-azure-quantum.md) | advanced |
-| 06 | [Quantum Optimization](../03-advanced/06-optimization.md) | advanced |
-| 07 | [Advanced Patterns](../03-advanced/07-advanced-patterns.md) | advanced |
+| # | Lesson |
+|---|--------|
+| 01 | [Deutsch–Jozsa: Promise, Oracle, and Evidence](../03-advanced/01-deutsch-jozsa.md) |
+| 02 | [Grover Search Under Realistic Constraints](../03-advanced/02-grover.md) |
+| 03 | [Quantum Fourier Transform and Phase Structure](../03-advanced/03-quantum-fft.md) |
+| 04 | [Error Correction, Syndromes, and Logical State](../03-advanced/04-error-correction.md) |
+| 05 | [Quantum Optimization and QAOA](../03-advanced/05-optimization.md) |
+| 06 | [Advanced Q# Circuit Patterns](../03-advanced/06-advanced-patterns.md) |
 
-## Module 04 — Professional (Weeks 7–9)
+## Module 04 — Professional
 
-| # | Lesson | Level |
-|---|--------|-------|
-| 01 | [Production Workflows](../04-professional/01-production-workflows.md) | professional |
-| 02 | [Hybrid Applications](../04-professional/02-hybrid-apps.md) | professional |
-| 03 | [Performance Tuning](../04-professional/03-performance.md) | professional |
-| 04 | [Team Projects](../04-professional/04-team-projects.md) | professional |
-| 05 | [Documentation Standards](../04-professional/05-documentation.md) | professional |
-| 06 | [Deployment](../04-professional/06-deployment.md) | professional |
+| # | Lesson |
+|---|--------|
+| 01 | [Reproducible Quantum Workflows](../04-professional/01-production-workflows.md) |
+| 02 | [Hybrid Applications and Variational Workloads](../04-professional/02-hybrid-apps.md) |
+| 03 | [Performance and Resource-Aware Optimization](../04-professional/03-performance.md) |
+| 04 | [Team Engineering for Quantum Projects](../04-professional/04-team-projects.md) |
+| 05 | [Documentation for Quantum Results](../04-professional/05-documentation.md) |
+| 06 | [Deployment and Quantum Job Operations](../04-professional/06-deployment.md) |
 
-## Module 05 — Mastery (Weeks 10–12)
+## Module 05 — Mastery
 
-| # | Lesson | Level |
-|---|--------|-------|
-| 01 | [Algorithm Design](../05-mastery/01-algorithm-design.md) | mastery |
-| 02 | [Research Topics](../05-mastery/02-research.md) | mastery |
-| 03 | [Capstone Projects](../05-mastery/03-capstone-projects.md) | mastery |
-| 04 | [Certification Prep](../05-mastery/04-certification-prep.md) | mastery |
+| # | Lesson |
+|---|--------|
+| 01 | [Research-Grade Quantum Algorithm Design](../05-mastery/01-algorithm-design.md) |
+| 02 | [Quantum Research Methods and Evidence](../05-mastery/02-research.md) |
+| 03 | [Noise-Aware Algorithm Design](../05-mastery/03-noise-aware-design.md) |
+| 04 | [Fault-Tolerant Resource Analysis](../05-mastery/04-resource-analysis.md) |
+| 05 | [Capstone: Design, Test, and Defend](../05-mastery/05-capstone-projects.md) |
+| 06 | [Certification Preparation and Technical Defense](../05-mastery/06-certification-prep.md) |
 
 ## Certificate path
 
-```
+```text
 01 Beginner → 02 Intermediate → 03 Advanced → 04 Professional → 05 Mastery → Final Assessment
 ```
 
-Good luck — and happy coding!
+The capstone must include a tested Q# implementation, a fair classical baseline, reproducible run configuration, uncertainty analysis, and a resource discussion. A simulator-only result must not be presented as a hardware advantage claim.

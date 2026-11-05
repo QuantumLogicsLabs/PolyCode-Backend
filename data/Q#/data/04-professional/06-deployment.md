@@ -1,41 +1,25 @@
-# Lesson 06 — Deployment
+# Lesson 06 — Deployment and Quantum Job Operations
 
 **Module 04 · Professional · Lesson 06 of 06**
 
-
 ## Learning objectives
 
-- Understand **deployment** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Prepare a Q# workload for local simulation, estimation, or remote execution.
+- Securely configure provider credentials and bound execution cost.
+- Monitor, cancel, and reconcile asynchronous quantum jobs.
 
-## Overview
+## Deployment readiness
 
-Deployment is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Treat the execution target as configuration, not algorithm logic. Validate target compatibility, input size, shot count, timeout, and estimated cost before submission. Store credentials in a secret manager or protected environment and use least-privilege access; never place tokens in lesson code, logs, or manifests.
 
-## Key concepts
+Remote jobs may be queued, delayed, cancelled, or fail after submission. Persist job IDs and status transitions, make polling bounded, and define how partial outputs are handled. Verify the provider’s current SDK/API instructions rather than copying obsolete workspace commands.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Deployment — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Build a deployment checklist and a local dry-run mode for the capstone. Demonstrate that invalid configuration is rejected before submission, secrets are excluded from logs, and a timeout/cancellation is visible to the caller.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can distinguish deployable algorithm code from provider-specific orchestration and operate a run without hiding failure or cost.
 
----
-
-**Next:** Continue to lesson 07 in this module.
+**Next:** [Mastery: research-grade algorithm design](../05-mastery/01-algorithm-design.md)

@@ -1,75 +1,23 @@
-# 🔬 Q# Complete Learning Guide
-### From Zero to Quantum Expert
+# Q# Learning Path
 
-> A structured, comprehensive curriculum for learning Q# and quantum computing — from classical computing concepts to advanced quantum algorithms.
+The canonical certificate curriculum is in **[data/](data/README.md)**. It contains five levels with six lessons each, progressing from Q# and quantum-state fundamentals to research-grade algorithm design and reproducible delivery.
 
----
+## Start here
 
-## 📚 Course Structure
+1. Read the [course roadmap](data/00-certification/00-roadmap.md).
+2. Complete Modules 01–05 in order. Each module has exactly six numbered lessons.
+3. Build and document the capstone, then complete the [final assessment](data/00-certification/02-final-assessment.md).
 
-```
-qsharp-learning/
-├── 01-introduction/          # What is Q#? Setup & first steps
-├── 02-basics/                # Syntax, types, operations
-├── 03-quantum-fundamentals/  # Qubits, gates, measurement
-├── 04-intermediate/          # Entanglement, teleportation, oracles
-├── 05-advanced/              # Error correction, noise, optimization
-├── 06-algorithms/            # Grover, Shor, VQE, QAOA
-├── 07-projects/              # Real-world capstone projects
-└── resources/                # Cheat sheets, references
-```
+The course expects programming familiarity and develops the quantum mathematics and Q# concepts as needed. Plan for **12–16 weeks** at 5–8 hours per week, including implementation and analysis.
 
----
+## Curriculum progression
 
-## 🗺️ Learning Path
+| Module | Level | Focus |
+|--------|-------|-------|
+| 01 | Beginner | Q# execution, amplitudes, gates, qubit lifetime, measurement |
+| 02 | Intermediate | Reversible oracles, entanglement, amplitude amplification, testing, resources |
+| 03 | Advanced | Promise algorithms, Grover, QFT, error correction, QAOA, reversible patterns |
+| 04 | Professional | Hybrid workloads, reproducibility, performance, team practice, deployment |
+| 05 | Mastery | Algorithm design, research evidence, noise, resource analysis, capstone |
 
-| Stage | Module | Topics | Est. Time |
-|-------|--------|---------|-----------|
-| 🟢 Beginner | 01 – Introduction | Setup, Q# ecosystem, Hello World | 2–3 hrs |
-| 🟢 Beginner | 02 – Basics | Types, operations, control flow | 4–6 hrs |
-| 🟡 Intermediate | 03 – Quantum Fundamentals | Qubits, superposition, gates | 6–8 hrs |
-| 🟡 Intermediate | 04 – Intermediate Topics | Entanglement, oracles, circuits | 6–8 hrs |
-| 🔴 Advanced | 05 – Advanced Q# | Error correction, noise models | 8–10 hrs |
-| 🔴 Advanced | 06 – Algorithms | Grover, Shor, VQE, QAOA | 10–14 hrs |
-| 🏆 Expert | 07 – Projects | Capstone quantum applications | 10+ hrs |
-
-**Total estimated time: ~50–60 hours**
-
----
-
-## 🚀 Prerequisites
-
-- Basic programming knowledge (any language)
-- High school mathematics (complex numbers helpful)
-- No quantum physics background required!
-
----
-
-## 🛠️ Quick Setup
-
-```bash
-# Install .NET SDK
-winget install Microsoft.DotNet.SDK.8   # Windows
-brew install dotnet                      # macOS
-
-# Install QDK
-dotnet new install Microsoft.Quantum.ProjectTemplates
-
-# Create first project
-dotnet new qsharp -o MyFirstQuantum
-cd MyFirstQuantum
-dotnet run
-```
-
----
-
-## 📖 How to Use This Guide
-
-1. Follow modules **in order** — each builds on the last
-2. Run every code example yourself
-3. Complete exercises before looking at solutions
-4. Use the `resources/` folder as a quick reference
-
----
-
-*Happy quantum computing! ⚛️*
+Older reference material remains in `_archive/`; follow the numbered curriculum for the certificate path.

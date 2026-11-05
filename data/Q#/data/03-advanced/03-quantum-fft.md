@@ -1,41 +1,25 @@
-# Lesson 03 — Quantum Fourier Transform
+# Lesson 03 — Quantum Fourier Transform and Phase Structure
 
-**Module 03 · Advanced · Lesson 03 of 07**
-
+**Module 03 · Advanced · Lesson 03 of 06**
 
 ## Learning objectives
 
-- Understand **quantum fourier transform** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Relate the QFT to the discrete Fourier transform on amplitudes.
+- Explain how controlled phases expose periodic structure.
+- Track bit-order conventions and approximation error.
 
-## Overview
+## Transform
 
-Quantum Fourier Transform is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+For dimension `N = 2^n`, the QFT maps `|x>` to `1/sqrt(N) * sum_y exp(2*pi*i*x*y/N)|y>`. It is a unitary basis change, not a way to read out all Fourier coefficients at once. Its value appears when later interference and measurements extract a property such as a period or phase.
 
-## Key concepts
+Circuit decompositions use Hadamards and controlled phase rotations, often followed by bit reversal. Reversing register order is a common source of apparently incorrect results. Approximate QFT implementations omit small rotations; quantify the induced error against the algorithm’s success requirement.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Quantum Fourier Transform — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+For two or three qubits, implement a QFT and its inverse using the Q# gate set supported by your pinned SDK. Verify that inverse-after-forward returns every computational basis input to itself. Document register endianness and compare exact versus truncated rotations if your simulator supports them.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can explain why a QFT alone does not provide an exponential readout advantage and identify where phase information is converted into measurable evidence.
 
----
-
-**Next:** Continue to lesson 04 in this module.
+**Next:** [Syndromes and quantum error correction](04-error-correction.md)

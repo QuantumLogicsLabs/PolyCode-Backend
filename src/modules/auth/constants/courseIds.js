@@ -97,9 +97,13 @@ const COURSE_IDS = [
   "powershell-scripting",
   "powershell-administration",
   "powershell-projects",
+  "powershell-security",
+  "powershell-cloud-automation",
   "batchfile-fundamentals",
   "batchfile-automation",
   "batchfile-projects",
+  "batchfile-security",
+  "batchfile-enterprise",
   "windows-scripting",
   "quantum-computing-fundamentals",
   "quantum-mechanics-for-programmers",
@@ -112,6 +116,7 @@ const COURSE_IDS = [
   "qsharp-quantum-gates",
   "qsharp-quantum-algorithms",
   "qsharp-quantum-projects",
+  "qsharp-error-correction",
   "software-engineering-fundamentals",
 ];
 

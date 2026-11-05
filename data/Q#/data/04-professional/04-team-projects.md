@@ -1,41 +1,25 @@
-# Lesson 04 — Team Projects
+# Lesson 04 — Team Engineering for Quantum Projects
 
 **Module 04 · Professional · Lesson 04 of 06**
 
-
 ## Learning objectives
 
-- Understand **team projects** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Split a quantum project into contracts that can be reviewed independently.
+- Review oracle, register, measurement, and reset invariants.
+- Use CI to catch correctness and resource regressions early.
 
-## Overview
+## Collaboration practices
 
-Team Projects is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Agree on operation signatures, register ordering, bit/phase conventions, and ownership/reset requirements before parallel implementation. Review circuit changes at the state-transition level, not only by reading source. Keep classical problem encoding and quantum transformations separately testable.
 
-## Key concepts
+CI should build with a pinned toolchain, run deterministic small-instance tests, verify probabilistic properties with declared tolerances, and optionally track resource baselines. Do not make a noisy device job a required unit test unless its variability and cost are controlled.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Team Projects — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Create a code-review checklist for a two-person algorithm project. Include oracle reversibility, endianness, qubit cleanup, invalid input handling, statistical test thresholds, and resource changes. Review a deliberate bug in each category and identify the test that catches it.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+Your team can merge a change only when its mathematical contract, tests, and resource impact are reviewable.
 
----
-
-**Next:** Continue to lesson 05 in this module.
+**Next:** [Technical documentation and experiment records](05-documentation.md)

@@ -1,41 +1,25 @@
-# Lesson 01 — Production Workflows
+# Lesson 01 — Reproducible Quantum Workflows
 
 **Module 04 · Professional · Lesson 01 of 06**
 
-
 ## Learning objectives
 
-- Understand **production workflows** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Make a Q# experiment reproducible from source, configuration, and dependencies.
+- Separate circuit logic from backend and execution configuration.
+- Preserve enough run metadata to interpret results later.
 
-## Overview
+## Workflow contract
 
-Production Workflows is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Pin the QDK/.NET toolchain and record compiler options, target profile, simulator or provider, shot count, random seed when supported, input instance, and source revision. Keep credentials outside source control and make backend selection explicit. A simulator result, resource estimate, and hardware job are different artifacts and must not be reported interchangeably.
 
-## Key concepts
+Use a small deterministic circuit as a smoke test before expensive runs. Validate inputs before submission, capture job identifiers and failures, and make retries idempotent where the provider allows it.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Production Workflows — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Create a run manifest for the QAOA experiment from Module 03. Include instance hash, parameters, shots, backend, toolchain version, code revision, start/end timestamps, and result location. Demonstrate that changing one manifest field makes the run distinguishable.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+Another engineer can reproduce or audit the result without relying on undocumented local state or embedded credentials.
 
----
-
-**Next:** Continue to lesson 02 in this module.
+**Next:** [Hybrid applications and variational loops](02-hybrid-apps.md)

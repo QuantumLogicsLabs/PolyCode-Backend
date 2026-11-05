@@ -71,6 +71,8 @@ Welcome to the **PolyCode Powershell Certificate Course**. Follow modules **01 â
 | 02 | [Building Tools](../05-mastery/02-tool-building.md) | mastery |
 | 03 | [Capstone Projects](../05-mastery/03-capstone-projects.md) | mastery |
 | 04 | [Career Path](../05-mastery/04-career-path.md) | mastery |
+| 05 | [Production-Ready Modules](../05-mastery/05-production-modules.md) | mastery |
+| 06 | [Cross-Platform CI and Release Automation](../05-mastery/06-cross-platform-ci.md) | mastery |
 
 ## Certificate path
 

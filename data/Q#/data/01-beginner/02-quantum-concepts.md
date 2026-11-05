@@ -1,41 +1,41 @@
-# Lesson 02 — Quantum Concepts Review
+# Lesson 02 — Quantum States, Phase, and Measurement
 
-**Module 01 · Beginner · Lesson 02 of 10**
-
+**Module 01 · Beginner · Lesson 02 of 06**
 
 ## Learning objectives
 
-- Understand **quantum concepts review** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Represent a pure qubit state as amplitudes over computational basis states.
+- Relate amplitude magnitude to measurement probability.
+- Explain why relative phase matters even when it is not directly observable.
 
-## Overview
+## State model
 
-Quantum Concepts Review is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+A normalized qubit can be written `alpha |0> + beta |1>`, where `|alpha|^2 + |beta|^2 = 1`. A computational-basis measurement returns `Zero` with probability `|alpha|^2` and `One` with probability `|beta|^2`. The result is a sample, not a readout of both amplitudes.
 
-## Key concepts
+The Hadamard gate maps `|0>` to an equal superposition. Applying a phase gate can leave basis-state probabilities unchanged yet change later interference. For example, `H`, then `Z`, then `H` maps `|0>` to `|1>`; omitting `Z` maps it back to `|0>`.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Circuit in Q#
 
-## Example
-
-```md
-// Quantum Concepts Review — practice sketch
-// add your code here
+```qsharp
+operation InterferenceExample() : Result {
+    use q = Qubit();
+    H(q);
+    Z(q);
+    H(q);
+    let result = M(q);
+    Reset(q);
+    return result;
+}
 ```
 
-## Exercise
+The reset is required before the allocated qubit leaves scope. Repeatedly run the operation: this circuit is deterministic despite its intermediate superposition, because the final interference concentrates probability on `One`.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Compare `H; H` with `H; Z; H`. Predict the final result before running each. Explain why measuring between the gates changes the computation.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can distinguish a basis measurement from a state description, and explain interference using relative phase rather than “trying every answer at once.”
 
----
-
-**Next:** Continue to lesson 03 in this module.
+**Next:** [A first Q# program with a qubit](03-hello-quantum.md)

@@ -21,7 +21,7 @@ Language-specific advanced features, performance, testing
 Frameworks, APIs, databases, deployment basics
 
 ### Module 05 — Mastery
-Algorithms, data structures, capstone design
+Advanced automation, tool building, capstone design, module packaging, cross-platform CI, and release practices
 
 ## Sample questions
 

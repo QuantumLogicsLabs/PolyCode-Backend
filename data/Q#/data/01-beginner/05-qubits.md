@@ -1,41 +1,36 @@
-# Lesson 05 — Working with Qubits
+# Lesson 05 — Qubit Registers and Safe Lifetime
 
-**Module 01 · Beginner · Lesson 05 of 10**
-
+**Module 01 · Beginner · Lesson 05 of 06**
 
 ## Learning objectives
 
-- Understand **working with qubits** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Allocate a register and address its elements deliberately.
+- Distinguish classical control flow from coherent quantum control.
+- Preserve the zero-state lifetime invariant for locally allocated qubits.
 
-## Overview
+## Registers and ownership
 
-Working with Qubits is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+An array of qubits is a collection of distinct quantum resources, not an array of readable bits. Gates transform the joint state; measuring one element can affect correlated outcomes. Q# lexical allocation (`use`) makes ownership explicit, and every allocated qubit must be returned to `|0>` before its scope exits.
 
-## Key concepts
-
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
-
-## Example
-
-```md
-// Working with Qubits — practice sketch
-// add your code here
+```qsharp
+operation PreparePair() : Result[] {
+    use qs = Qubit[2];
+    H(qs[0]);
+    CNOT(qs[0], qs[1]);
+    let results = [M(qs[0]), M(qs[1])];
+    ResetAll(qs);
+    return results;
+}
 ```
 
-## Exercise
+The two outcomes are correlated because the circuit prepares a Bell state. `ResetAll` restores both resources; the returned array contains classical measurement results, not qubits.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Change the circuit to prepare `|00>` and then apply `X` only to `qs[1]`. Predict both results. Next, restore the entangling circuit and tabulate at least 100 shots; check whether mixed outcomes occur and explain why finite sampling may obscure the ideal correlation.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can trace each qubit from allocation through gates and measurement to reset, and distinguish a correlated register from two independent bits.
 
----
-
-**Next:** Continue to lesson 06 in this module.
+**Next:** [Measurement, reset, and classical feedback](06-measurements.md)

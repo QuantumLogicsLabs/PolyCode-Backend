@@ -1,41 +1,36 @@
-# Lesson 01 — Introduction to Q#
+# Lesson 01 — Q# as a Quantum Programming Language
 
-**Module 01 · Beginner · Lesson 01 of 10**
-
+**Module 01 · Beginner · Lesson 01 of 06**
 
 ## Learning objectives
 
-- Understand **introduction to q#** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Distinguish the host program, Q# operations, and a quantum target.
+- Explain why quantum state is manipulated through operations rather than read directly.
+- Create a minimal Q# entry point and identify what a simulator does.
 
-## Overview
+## Core model
 
-Introduction to Q# is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Q# is a strongly typed language for describing quantum and classical computation. An `operation` may act on qubits and can have quantum side effects; a `function` is classical and cannot access qubits. A simulator executes the circuit semantics on a classical machine—it does not make the simulated algorithm quantum-fast.
 
-## Key concepts
+Qubits are resources allocated for a scope. Programs apply gates and measurements; they cannot inspect amplitudes or copy an unknown quantum state. Measurement is the interface from quantum state back to classical data.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Minimal program
 
-## Example
-
-```md
-// Introduction to Q# — practice sketch
-// add your code here
+```qsharp
+@EntryPoint()
+operation Main() : Unit {
+    Message("Q# program is running");
+}
 ```
 
-## Exercise
+In the current QDK workflow, open a Q# project with the supported .NET/QDK tooling and run its entry point. Keep SDK and template versions pinned for reproducible work; do not assume every historical Azure Quantum command applies to a local project.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Run the entry point, then change the message and run it again. Identify which part is ordinary classical execution. Create a second operation and call it from `Main`; state whether it needs to be a function or an operation and justify the choice.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can describe the roles of Q#, its host/runtime, and a simulator without claiming that local simulation demonstrates quantum speedup.
 
----
-
-**Next:** Continue to lesson 02 in this module.
+**Next:** [Quantum states and probability](02-quantum-concepts.md)

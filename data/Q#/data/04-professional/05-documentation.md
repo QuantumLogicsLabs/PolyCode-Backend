@@ -1,41 +1,25 @@
-# Lesson 05 — Documentation Standards
+# Lesson 05 — Documentation for Quantum Results
 
 **Module 04 · Professional · Lesson 05 of 06**
 
-
 ## Learning objectives
 
-- Understand **documentation standards** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Document mathematical assumptions and implementation conventions together.
+- Report uncertainty and baselines alongside measured outcomes.
+- Make claims traceable to code, run configuration, and evidence.
 
-## Overview
+## Minimum technical record
 
-Documentation Standards is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+For each algorithm, document the problem encoding, oracle contract, register ordering, gate conventions, measurement basis, and any approximation. For each experiment, record instance, source revision, toolchain, backend, shots, seed if applicable, resource estimate assumptions, and failures/retries.
 
-## Key concepts
+Separate proven properties, simulator observations, hardware observations, and hypotheses. State the classical baseline and include uncertainty; a best sample alone is not a performance result.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Lab
 
-## Example
-
-```md
-// Documentation Standards — practice sketch
-// add your code here
-```
-
-## Exercise
-
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+Write a one-page report for the QAOA experiment. Include an exact tiny-instance baseline, sampling uncertainty, resource estimates, limitations, and a reproducibility manifest. Ask a reader to reproduce one table entry using only the report.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+A reader can distinguish what the algorithm guarantees from what one experimental run happened to observe.
 
----
-
-**Next:** Continue to lesson 06 in this module.
+**Next:** [Deployment and execution readiness](06-deployment.md)

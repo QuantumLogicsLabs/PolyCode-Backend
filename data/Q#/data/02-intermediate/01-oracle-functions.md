@@ -1,41 +1,36 @@
-# Lesson 01 — Oracle Functions
+# Lesson 01 — Reversible Oracles and Phase Kickback
 
 **Module 02 · Intermediate · Lesson 01 of 06**
 
-
 ## Learning objectives
 
-- Understand **oracle functions** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Specify an oracle as a reversible unitary, not an irreversible classical lookup.
+- Distinguish a bit-flip oracle from a phase oracle.
+- Explain how an ancilla prepared in `|->` transfers a predicate value into phase.
 
-## Overview
+## Oracle contract
 
-Oracle Functions is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+For a Boolean predicate `f`, the standard bit oracle is `Uf|x,y> = |x, y xor f(x)>`. XOR makes the transformation reversible. Preparing the target in `|-> = (|0>-|1>)/sqrt(2)` yields phase kickback: the target returns unchanged while the input receives phase `(-1)^f(x)`.
 
-## Key concepts
+An oracle implementation must preserve superposition and must not measure its input. A classical function that returns `f(x)` is useful for constructing or testing a small example, but it is not itself a coherent oracle.
 
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
+## Circuit sketch
 
-## Example
-
-```md
-// Oracle Functions — practice sketch
-// add your code here
+```qsharp
+operation ApplyBitOracle(x : Qubit, target : Qubit) : Unit {
+    // Example predicate: f(x) = x
+    CNOT(x, target);
+}
 ```
 
-## Exercise
+For phase kickback, prepare `target` with `X` then `H` before this operation. Track global versus relative phase carefully: a phase shared by every basis state is unobservable, while a phase on only marked inputs changes interference.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Implement a two-input toy predicate reversibly using gates, verify that applying its bit oracle twice restores both registers, then add the phase-kickback preparation. Do not measure inside the oracle. Explain the behavior on each computational-basis input.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You can state the oracle’s input/output invariant and explain why reversibility is mandatory.
 
----
-
-**Next:** Continue to lesson 02 in this module.
+**Next:** [Entanglement and multi-qubit structure](02-entanglement-qsharp.md)

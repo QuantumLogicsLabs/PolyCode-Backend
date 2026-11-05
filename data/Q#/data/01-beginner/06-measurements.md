@@ -1,41 +1,39 @@
-# Lesson 06 — Measurements in Q#
+# Lesson 06 — Measurement, Reset, and Feedback
 
-**Module 01 · Beginner · Lesson 06 of 10**
-
+**Module 01 · Beginner · Lesson 06 of 06**
 
 ## Learning objectives
 
-- Understand **measurements in q#** in Q#
-- Read and write small examples you can run locally
-- Connect this topic to the next lesson in the course
+- Use `M` to convert a quantum state into a classical `Result`.
+- Apply classical branching on a measurement result without confusing it with coherent control.
+- State the reset obligations for measured and unmeasured qubits.
 
-## Overview
+## Measurement semantics
 
-Measurements in Q# is a core topic on the PolyCode **Q# Certificate Course** path. Work through the examples, then try the exercise before moving on.
+Measurement is probabilistic in general and changes the state. Its `Result` is classical data that can select a later operation. This measurement-conditioned branch is not the same as a controlled gate, which acts coherently without first observing its control.
 
-## Key concepts
-
-1. **Syntax and structure** — how Q# expresses this idea clearly
-2. **Common patterns** — what you will see in real projects
-3. **Mistakes to avoid** — typical beginner errors and fixes
-
-## Example
-
-```md
-// Measurements in Q# — practice sketch
-// add your code here
+```qsharp
+operation MeasureAndCorrect() : Result {
+    use q = Qubit();
+    H(q);
+    let r = M(q);
+    if (r == One) {
+        X(q);
+    }
+    let final = M(q);
+    Reset(q);
+    return final;
+}
 ```
 
-## Exercise
+After the first measurement, `q` is in the corresponding basis state; the branch maps either measured outcome to `Zero` before the final measurement. This is a simple feedback pattern, not an error-correction code.
 
-1. Write a short program that uses today's topic.
-2. Change one value and predict the output before running.
-3. Explain the result in your own words (2–3 sentences).
+## Lab
+
+Replace the conditional correction with a second unconditional `M` and compare the distributions. Explain which result controls the next gate, and why the final measurement is deterministic in the original circuit. Ensure all allocated qubits are reset on every control-flow path.
 
 ## Checkpoint
 
-You are ready for the next lesson when you can solve the exercise without copying the example.
+You have completed the foundations. Before continuing, be able to trace allocation, gates, measurement, classical feedback, and reset in a small Q# operation.
 
----
-
-**Next:** Continue to lesson 07 in this module.
+**Next:** [Oracle functions](../02-intermediate/01-oracle-functions.md)
